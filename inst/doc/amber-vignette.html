@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>The Automated Model Benchmarking (AMBER) package</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">The Automated Model Benchmarking (AMBER) package</h1>
+
+
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(amber)</code></pre></div>
+<div id="context" class="section level2">
+<h2>Context</h2>
+<p>The Canadian Land Surface Scheme Including Biogeochemical Cycles (CLASSIC) is the land surface component of the Canadian Earth System Model (CanESM) <span class="citation">(Melton and Arora 2016)</span>. CLASSIC is a process-based ecosystem and land surface model designed for use at scales ranging from site-level to global. Environment and Climate Change Canada develops and maintains CLASSIC as an open-source community model. CLASSIC is the successor to its two component models: CLASS and CTEM.</p>
+<p>The Automated Model Benchmarking (AMBER) package evaluates the ability of CLASSIC to reproduce land surface processes by comparing model outputs against quasi-observational data sets derived from remote sensing products, eddy covariance flux tower measurements, and stream flow measurements. To summarize model performance across different statistical metrics AMBER employs a skill score system that was originally developed by the International Land Model Benchmarking (ILAMB) framework <span class="citation">(Collier et al. 2018)</span>. The amber package was created to tailor the ILAMB skill score approach for CLASSIC model outputs.</p>
+</div>
+<div id="functions" class="section level2">
+<h2>Functions</h2>
+<p>The functions provided by the amber package can be grouped into two categories:</p>
+<ul>
+<li><p>Functions that compute skill scores. This includes all functions with the prefix <em>scores</em>. Different functions apply to different reference data, such as spatially gridded data (<em>scores.grid.time</em>), eddy covariance flux tower measurements (<em>scores.fluxnet.csv</em>), or stream flow measurements (<em>scores.runoff</em>).</p></li>
+<li><p>Functions for data visualization. This includes <em>plotGrid</em>, <em>plotNc</em>, <em>plotNcIrreg</em>, <em>seasonalCycle</em>, <em>seasonalCycleIrreg</em>, <em>zonalMean</em>, and <em>zonalMeanIrreg</em>. The suffix <em>Irreg</em> indicates that this function may be applied to data that is on an irregular grid. In the case of CLASSIC, this applies to high-resolution simulations that are conducted for the Canadian domain.</p></li>
+</ul>
+</div>
+<div id="scores" class="section level2">
+<h2>Scores</h2>
+<p>The performance of a model is expressed through scores that range from zero to one, where increasing values imply better performance. These scores are computed for each variable in five steps: (<span class="math inline">\(i\)</span>) computation of a statistical metric, (<span class="math inline">\(ii\)</span>) nondimensionalization, (<span class="math inline">\(iii\)</span>) conversion to unit interval, (<span class="math inline">\(iv\)</span>) spatial integration, and (<span class="math inline">\(v\)</span>) averaging scores computed from different statistical metrics. The latter includes the bias, root-mean-square error, phase shift, inter-annual variability, and spatial distribution. The computation of a scalar score is exemplified for the bias below. The bias is defined as follows:</p>
+<p><span class="math display">\[bias(\lambda, \phi)=\overline{v_{mod}}(\lambda, \phi)-\overline{v_{ref}}(\lambda, \phi),\]</span></p>
+<p>where <span class="math inline">\(\overline{v_{mod}}(\lambda, \phi)\)</span> and <span class="math inline">\(\overline{v_{ref}}(\lambda, \phi)\)</span> are the mean values in time (<span class="math inline">\(t\)</span>) of a variable <span class="math inline">\(v\)</span> as a function of longitude <span class="math inline">\(\lambda\)</span> and latitude <span class="math inline">\(\phi\)</span> for model and reference data, respectively. Nondimensionalization is achieved by dividing the bias by the standard deviation of the reference data (<span class="math inline">\(\sigma_{ref}\)</span>):</p>
+<p><span class="math display">\[\label{epsilon_bias}
+\varepsilon_{bias}(\lambda, \phi)=|bias(\lambda, \phi)|/\sigma_{ref}(\lambda, \phi)\]</span>.</p>
+<p>A bias score that ranges between zero and one is calculated next:</p>
+<p><span class="math display">\[s_{bias}(\lambda, \phi)=e^{-\varepsilon_{bias}(\lambda, \phi)}.\]</span></p>
+<p>The spatial integration of <span class="math inline">\(s_{bias}\)</span> leads to the scalar score: <span class="math display">\[S_{bias}=\overline{\overline{s_{bias}}}(\lambda, \phi).\]</span></p>
+<p>Similar approaches are used for obtaining spatially integrated score values for the root-mean-square error (<span class="math inline">\(S_{rmse}\)</span>), phase shift (<span class="math inline">\(S_{phase}\)</span>), inter-annual variability (<span class="math inline">\(S_{iav}\)</span>), and spatial distribution (<span class="math inline">\(S_{dist}\)</span>) (Table 1). These score values are then combined to derive a single overall score for each output variable:</p>
+<p><span class="math display">\[S_{overall}=\frac{S_{bias}+2S_{rmse}+S_{phase}+S_{iav}+S_{dist}}{1+2+1+1+1}.\]</span></p>
+<p>Note that <span class="math inline">\(S_{rmse}\)</span> is weighted by a factor of two, which emphasizes its importance. Values of <span class="math inline">\(S_{overall}\)</span> can be combined across different variables to obtain a complete score across all variables for a given model.</p>
+<p>The spatial integration can be weighted, where regions with large values of <span class="math inline">\(\overline{v_{ref}}(\lambda, \phi)\)</span> become more important. This is useful when the nondimensionalization leads to large relative errors, and hence a poor score.</p>
+<table>
+<caption><strong>Table 1</strong> Equations used for computing spatially integrated scalar scores for each variable. The four steps refer to (1) the definition of the statistical metric, (2) nondimensionalization, (3) conversion to unit interval, and (4) spatial integration. The integration limits <span class="math inline">\(t_{0}\)</span> and <span class="math inline">\(t_{f}\)</span> are the initial and final time step, respectively. The variables <span class="math inline">\(c_{mod}\)</span> and <span class="math inline">\(c_{ref}\)</span> refer to the monthly mean annual cycle of the model and reference data, respectively.</caption>
+<thead>
+<tr class="header">
+<th align="left">Score</th>
+<th align="left">Step</th>
+<th align="center">Equation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(1)</td>
+<td align="center"><span class="math inline">\(bias(\lambda, \phi)=\overline{v_{mod}}(\lambda, \phi)-\overline{v_{ref}}(\lambda, \phi)\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">(2)</td>
+<td align="center"><span class="math inline">\(\varepsilon_{bias}=|bias(\lambda, \phi)|/\sigma_{ref}(\lambda, \phi)\)</span>, where <span class="math inline">\(\sigma_{ref}\)</span> is the standard deviation of the reference data</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(3)</td>
+<td align="center"><span class="math inline">\(s_{bias}(\lambda, \phi)=e^{-\varepsilon_{bias}(\lambda, \phi)}\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"><span class="math inline">\(S_{bias}\)</span></td>
+<td align="left">(4)</td>
+<td align="center"><span class="math inline">\(S_{bias}=\overline{\overline{s_{bias}}}\)</span></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(1)</td>
+<td align="center"><span class="math inline">\(rmse(\lambda, \phi)=\sqrt{\frac{1}{t_{f}-t_{0}}\int_{t_{0}}^{t_{f}}(v_{mod}(t,\lambda, \phi)-v_{ref}(t,\lambda, \phi))^{2}dt}\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">(2)</td>
+<td align="center"><span class="math inline">\(\varepsilon_{rmse}(\lambda, \phi)=crmse(\lambda, \phi)/\sigma_{ref}(\lambda, \phi)\)</span>, where <span class="math inline">\(crmse(\lambda, \phi)\)</span> <span class="math inline">\(=\sqrt{\frac{1}{t_{f}-t_{0}}\int_{t_{0}}^{t_{f}}[(v_{mod}(t,\lambda, \phi)-\overline{v_{mod}}(\lambda, \phi))-(v_{ref}(t,\lambda, \phi)-\overline{v_{ref}}(\lambda, \phi))]^{2}dt}\)</span></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(3)</td>
+<td align="center"><span class="math inline">\(s_{rmse}(\lambda, \phi)=e^{-\varepsilon_{rmse}(\lambda, \phi)}\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"><span class="math inline">\(S_{rmse}\)</span></td>
+<td align="left">(4)</td>
+<td align="center"><span class="math inline">\(S_{rmse}=\overline{\overline{s_{rmse}}}\)</span></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(1)</td>
+<td align="center"><span class="math inline">\(\theta(\lambda, \phi)=\max(c_{mod}(t,\lambda, \phi))-\max(c_{ref}(t,\lambda, \phi))\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">(2)</td>
+<td align="center">not applicable, as units are consistent across all variables</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(3)</td>
+<td align="center"><span class="math inline">\(s_{phase}(\lambda, \phi)=\frac{1}{2}[1+\cos(\frac{2\pi\theta(\lambda, \phi)}{365})]\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"><span class="math inline">\(S_{phase}\)</span></td>
+<td align="left">(4)</td>
+<td align="center"><span class="math inline">\(S_{phase}=\overline{\overline{s_{phase}}}\)</span></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(1)</td>
+<td align="center"><span class="math inline">\(iav_{ref}(\lambda, \phi)=\sqrt{\frac{1}{t_{f}-t_{0}}\int_{t_{0}}^{t_{f}}(v_{ref}(t,\lambda, \phi)-c_{ref}(t,\lambda, \phi))^{2}dt}\)</span>, <span class="math inline">\(iav_{mod}(\lambda, \phi)=\sqrt{\frac{1}{t_{f}-t_{0}}\int_{t_{0}}^{t_{f}}(v_{mod}(t,\lambda, \phi)-c_{mod}(t,\lambda, \phi))^{2}dt}\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">(2)</td>
+<td align="center"><span class="math inline">\(\varepsilon_{iav}=|(iav_{mod}(\lambda, \phi)-iav_{ref}(\lambda, \phi))|/iav_{ref}(\lambda, \phi)\)</span></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(3)</td>
+<td align="center"><span class="math inline">\(s_{iav}(\lambda, \phi)=e^{-\varepsilon_{iav}(\lambda, \phi)}\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"><span class="math inline">\(S_{iav}\)</span></td>
+<td align="left">(4)</td>
+<td align="center"><span class="math inline">\(S_{iav}=\overline{\overline{s_{iav}}}\)</span></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(1)</td>
+<td align="center"><span class="math inline">\(\sigma=\sigma_{\overline{v_{mod}}}/\sigma_{\overline{v_{ref}}}\)</span></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">(2)</td>
+<td align="center">not applicable</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">(3)</td>
+<td align="center">not applicable</td>
+</tr>
+<tr class="even">
+<td align="left"><span class="math inline">\(S_{dist}\)</span></td>
+<td align="left">(4)</td>
+<td align="center"><span class="math inline">\(S_{dist}=2(1+R)/(\sigma+\frac{1}{\sigma})^{2}\)</span>, where <span class="math inline">\(R\)</span> is the spatial correlation coefficient of <span class="math inline">\(\overline{v_{ref}}(\lambda, \phi)\)</span> and <span class="math inline">\(\overline{v_{mod}}(\lambda, \phi)\)</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="reference-data" class="section level2">
+<h2>Reference data</h2>
+<p>AMBER has been tested with reference data from ILAMB. The respective data consists of remote sensing-based products, flux tower measurements, and stream flow measurements (Table 2). All remote-sensing based reference data must be spatially interpolated to the resolution grid of the model (2.8125<span class="math inline">\(^\circ\)</span> <span class="math inline">\(\times\)</span> 2.8125<span class="math inline">\(^\circ\)</span>). Reference data may be obtained from ILAMB.</p>
+<table>
+<caption><strong>Table 2</strong> Reference data</caption>
+<thead>
+<tr class="header">
+<th align="left">Data</th>
+<th align="left">Variables</th>
+<th align="left">Period</th>
+<th align="left">Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">AVHRR</td>
+<td align="left">LAI</td>
+<td align="left">1982-2010</td>
+<td align="left"><span class="citation">Myneni, Nemani, and Running (1997)</span></td>
+</tr>
+<tr class="even">
+<td align="left">CanSISE</td>
+<td align="left">SNW</td>
+<td align="left">1981-2010</td>
+<td align="left"><span class="citation">Mudryk et al. (2015)</span></td>
+</tr>
+<tr class="odd">
+<td align="left">CERES</td>
+<td align="left">ALBS, RSS, RLS, RNS</td>
+<td align="left">2000-2012</td>
+<td align="left"><span class="citation">Kato et al. (2013)</span></td>
+</tr>
+<tr class="even">
+<td align="left">FLUXNET</td>
+<td align="left">GPP, HFLS, HFSS, NEE, RECO, RNS</td>
+<td align="left">1997-2014</td>
+<td align="left"><span class="citation">Pastorello et al. (2017)</span></td>
+</tr>
+<tr class="odd">
+<td align="left">GBAF</td>
+<td align="left">GPP, NEE, RECO, HFLS, HFSS</td>
+<td align="left">1982-2008</td>
+<td align="left"><span class="citation">Jung et al. (2010)</span></td>
+</tr>
+<tr class="even">
+<td align="left">GEOCARBON</td>
+<td align="left">AGLBIO</td>
+<td align="left">NA</td>
+<td align="left"><span class="citation">Avitabile et al. (2016)</span>,</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"><span class="citation">Santoro et al. (2015)</span></td>
+</tr>
+<tr class="even">
+<td align="left">GFED4S</td>
+<td align="left">BURNT</td>
+<td align="left">2001-2015</td>
+<td align="left"><span class="citation">Giglio et al. (2010)</span></td>
+</tr>
+<tr class="odd">
+<td align="left">GRDC</td>
+<td align="left">MRRO</td>
+<td align="left">1980-2010</td>
+<td align="left"><span class="citation">Dai and Trenberth (2002)</span></td>
+</tr>
+<tr class="even">
+<td align="left">GWEXSRB</td>
+<td align="left">ALBS</td>
+<td align="left">1984-2007</td>
+<td align="left"><span class="citation">Stackhouse et al. (2011)</span></td>
+</tr>
+<tr class="odd">
+<td align="left">HWSD</td>
+<td align="left">CSOIL</td>
+<td align="left">NA</td>
+<td align="left"><span class="citation">Todd-Brown et al. (2013)</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="examples" class="section level2">
+<h2>Examples</h2>
+<div id="comparing-model-results-against-gridded-reference-data" class="section level3">
+<h3>Comparing model results against gridded reference data</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(amber)
+<span class="kw">library</span>(doParallel)
+<span class="kw">library</span>(ncdf4)
+<span class="kw">library</span>(raster)
+
+long.name &lt;-<span class="st"> 'Gross primary productivity'</span>
+nc.mod &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">'extdata/modelRegular'</span>, <span class="st">'gpp_monthly.nc'</span>, <span class="dt">package =</span> <span class="st">'amber'</span>)
+nc.ref &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">'extdata/referenceRegular'</span>, <span class="st">'gpp_GBAF_128x64.nc'</span>, <span class="dt">package =</span> <span class="st">'amber'</span>)
+mod.id &lt;-<span class="st"> 'CLASSIC'</span> <span class="co"># define a model experiment ID</span>
+ref.id &lt;-<span class="st"> 'GBAF'</span> <span class="co"># give reference dataset a name</span>
+unit.conv.mod &lt;-<span class="st"> </span><span class="dv">86400</span><span class="op">*</span><span class="dv">1000</span> <span class="co"># optional unit conversion for model data</span>
+unit.conv.ref &lt;-<span class="st"> </span><span class="dv">86400</span><span class="op">*</span><span class="dv">1000</span> <span class="co"># optional unit conversion for reference data</span>
+variable.unit &lt;-<span class="st"> 'gC m$^{-2}$ day$^{-1}$'</span> <span class="co"># unit after conversion (LaTeX notation)</span>
+
+plot.me &lt;-<span class="st"> </span><span class="kw">scores.grid.time</span>(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
+unit.conv.ref, variable.unit)
+<span class="co"># Create a plot in PDF format</span>
+<span class="kw">plotGrid</span>(long.name, plot.me)</code></pre></div>
+</div>
+<div id="comparing-model-results-against-eddy-covariance-flux-tower-measurements" class="section level3">
+<h3>Comparing model results against eddy covariance flux tower measurements</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(amber)
+<span class="kw">library</span>(doParallel)
+<span class="kw">library</span>(ncdf4)
+<span class="kw">library</span>(raster)
+
+long.name &lt;-<span class="st"> 'Gross primary productivity'</span>
+nc.mod &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">'extdata/modelRegular'</span>, <span class="st">'gpp_monthly.nc'</span>, <span class="dt">package =</span> <span class="st">'amber'</span>)
+ref.csv &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">'extdata/referenceRegular'</span>, <span class="st">'gpp_monthly_fluxnet.csv'</span>, <span class="dt">package =</span> <span class="st">'amber'</span>)
+mod.id &lt;-<span class="st"> 'CLASSIC'</span> <span class="co"># define a model experiment ID</span>
+ref.id &lt;-<span class="st"> 'FLUXNET'</span> <span class="co"># give reference dataset a name</span>
+unit.conv.mod &lt;-<span class="st"> </span><span class="dv">86400</span><span class="op">*</span><span class="dv">1000</span> <span class="co"># optional unit conversion for model data</span>
+unit.conv.ref &lt;-<span class="st"> </span><span class="dv">1</span> <span class="co"># optional unit conversion for reference data</span>
+variable.unit &lt;-<span class="st"> 'gC m$^{-2}$ day$^{-1}$'</span> <span class="co"># unit after conversion (LaTeX notation)</span>
+
+<span class="kw">scores.fluxnet.csv</span>(long.name, nc.mod, ref.csv, mod.id, ref.id,
+unit.conv.mod, unit.conv.ref, variable.unit)</code></pre></div>
+</div>
+<div id="comparing-model-results-against-streamflow-measurements" class="section level3">
+<h3>Comparing model results against streamflow measurements</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(amber)
+<span class="kw">library</span>(doParallel)
+<span class="kw">library</span>(ncdf4)
+<span class="kw">library</span>(raster)
+<span class="kw">library</span>(latex2exp)
+
+long.name &lt;-<span class="st"> 'Streamflow'</span>
+nc.mod &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">'extdata/modelRegular'</span>, <span class="st">'mrro_monthly.nc'</span>, <span class="dt">package =</span> <span class="st">'amber'</span>)
+nc.ref &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">'extdata/referenceRegular'</span>, <span class="st">'runoff.nc'</span>, <span class="dt">package =</span> <span class="st">'amber'</span>)
+nc.basins &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">'extdata/referenceRegular'</span>, <span class="st">'basins.nc'</span>, <span class="dt">package =</span> <span class="st">'amber'</span>)
+mod.id &lt;-<span class="st"> 'CLASSIC'</span> <span class="co"># model name</span>
+ref.id &lt;-<span class="st"> 'GRDC'</span> <span class="co"># give reference dataset a name</span>
+unit.conv.mod &lt;-<span class="st"> </span><span class="dv">86400</span> <span class="co"># optional unit conversion for model data</span>
+unit.conv.ref &lt;-<span class="st"> </span><span class="dv">86400</span> <span class="co"># optional unit conversion for reference data</span>
+variable.unit &lt;-<span class="st"> 'kg m$^{-2}$ day$^{-1}$'</span> <span class="co"># unit after conversion (LaTeX notation)</span>
+score.weights &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">1</span>) <span class="co"># define score weights</span>
+
+<span class="kw">scores.runoff</span>(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, unit.conv.mod,
+unit.conv.ref, variable.unit, score.weights)</code></pre></div>
+</div>
+</div>
+<div id="acknowledgements" class="section level2">
+<h2>Acknowledgements</h2>
+<p>The example data provided with this package includes eddy covariance data acquired and that is shared by the FLUXNET community, including these networks: AmeriFlux, AfriFlux, AsiaFlux, CarboAfrica, CarboEuropeIP, CarboItaly, CarboMont, ChinaFlux, Fluxnet-Canada, GreenGrass, ICOS, KoFlux, LBA, NECC, OzFlux-TERN, TCOS-Siberia, and USCCC. The ERA-Interim reanalysis data are provided by ECMWF and processed by LSCE. The FLUXNET eddy covariance data processing and harmonization was carried out by the European Fluxes Database Cluster, AmeriFlux Management Project, and Fluxdata project of FLUXNET, with the support of CDIAC and ICOS Ecosystem Thematic Center, and the OzFlux, ChinaFlux and AsiaFlux offices. Other example data have been provided by the International Land Model Benchmarking (ILAMB) project.</p>
+</div>
+<div id="references" class="section level2 unnumbered">
+<h2>References</h2>
+<div id="refs" class="references">
+<div id="ref-Avitabile2016-sb">
+<p>Avitabile, V, M Herold, G B M Heuvelink, and others. 2016. “An Integrated Pan Tropical Biomass Map Using Multiple Reference Datasets.” <em>Glob. Chang. Biol.</em> Wiley Online Library.</p>
+</div>
+<div id="ref-Collier-th">
+<p>Collier, Nathan, Forrest M Hoffman, David M Lawrence, Gretchen Keppel-Aleks, Charles D Koven, William J Riley, Mingquan Mu, and James T Randerson. 2018. “The International Land Model Benchmarking (ILAMB) System: Design, Theory, and Implementation.” <em>Journal of Advances in Modeling Earth Systems (JAMES)</em>.</p>
+</div>
+<div id="ref-Dai2002-tp">
+<p>Dai, Aiguo, and Kevin E Trenberth. 2002. “Estimates of Freshwater Discharge from Continents: Latitudinal and Seasonal Variations.” <em>J. Hydrometeorol.</em> 3 (6). American Meteorological Society: 660–87.</p>
+</div>
+<div id="ref-Giglio2010-ok">
+<p>Giglio, L, J T Randerson, G R van der Werf, P S Kasibhatla, G J Collatz, D C Morton, and R S DeFries. 2010. “Assessing Variability and Long-Term Trends in Burned Area by Merging Multiple Satellite Fire Products” 7 (3). escholarship.org: 1171–86.</p>
+</div>
+<div id="ref-Jung2010-vd">
+<p>Jung, Martin, Markus Reichstein, Philippe Ciais, Sonia I Seneviratne, Justin Sheffield, Michael L Goulden, Gordon Bonan, et al. 2010. “Recent Decline in the Global Land Evapotranspiration Trend Due to Limited Moisture Supply.” <em>Nature</em> 467 (7318). nature.com: 951–54.</p>
+</div>
+<div id="ref-Kato2013-ip">
+<p>Kato, Seiji, Norman G Loeb, Fred G Rose, David R Doelling, David A Rutan, Thomas E Caldwell, Lisan Yu, and Robert A Weller. 2013. “Surface Irradiances Consistent with CERES-Derived Top-of-Atmosphere Shortwave and Longwave Irradiances.” <em>J. Clim.</em> 26 (9). American Meteorological Society: 2719–40.</p>
+</div>
+<div id="ref-Melton2016-jb">
+<p>Melton, J R, and V K Arora. 2016. “Competition Between Plant Functional Types in the Canadian Terrestrial Ecosystem Model (CTEM) V. 2.0.” <em>Geoscientific Model Development</em> 9 (1). Copernicus GmbH: 323–61.</p>
+</div>
+<div id="ref-Mudryk2015-zo">
+<p>Mudryk, L R, C Derksen, P J Kushner, and R Brown. 2015. “Characterization of Northern Hemisphere Snow Water Equivalent Datasets, 1981–2010.” <em>J. Clim.</em> 28 (20). American Meteorological Society: 8037–51.</p>
+</div>
+<div id="ref-Myneni1997-lj">
+<p>Myneni, R B, R R Nemani, and S W Running. 1997. “Algorithm for the Estimation of Global Land Cover, LAI and FPAR Based on Radiative Transfer Models.” <em>IEEE Trans. Geosci. Remote Sens.</em> 35 (6): 1380–93.</p>
+</div>
+<div id="ref-Pastorello2017-ym">
+<p>Pastorello, G, D Papale, H Chu, C Trotta, D Agarwal, E Canfora, D Baldocchi, and M Torn. 2017. “A New Data Set to Keep a Sharper Eye on Land-Air Exchanges.” <em>Eos Trans. Amer. Geophys. Union</em> 98 (8). Lawrence Berkeley National Lab.(LBNL), Berkeley, CA (United States).</p>
+</div>
+<div id="ref-Santoro2015-sn">
+<p>Santoro, Maurizio, André Beaudoin, Christian Beer, Oliver Cartus, Johan E S Fransson, Ronald J Hall, Carsten Pathe, et al. 2015. “Forest Growing Stock Volume of the Northern Hemisphere: Spatially Explicit Estimates for 2010 Derived from Envisat ASAR.” <em>Remote Sens. Environ.</em> 168 (October). Elsevier: 316–34.</p>
+</div>
+<div id="ref-Stackhouse2011-vt">
+<p>Stackhouse, Paul W, Jr, S K Gupta, Stephen J Cox, Taiping Zhang, J Colleen Mikovitz, and Laura M Hinkelman. 2011. “The NASA/GEWEX Surface Radiation Budget Release 3.0: 24.5-Year Dataset.” <em>Gewex News</em> 21 (1): 10–12.</p>
+</div>
+<div id="ref-Todd-Brown2013-ls">
+<p>Todd-Brown, K E O, J T Randerson, W M Post, F M Hoffman, C Tarnocai, E A G Schuur, and S D Allison. 2013. “Causes of Variation in Soil Carbon Simulations from Cmip5 Earth System Models and Comparison with Observations” 10 (3). escholarship.org: 1717–36.</p>
+</div>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

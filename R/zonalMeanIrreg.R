@@ -1,4 +1,4 @@
-################################################################################
+################################################################################ 
 #' Zonal mean plots of model and reference data on an irregular grid
 #' @description This function plots zonal mean values and corresponding inter-quartile
 #' ranges of model and reference data. The function expects data to be on an irregular grid.
@@ -53,10 +53,10 @@
 #' unit.conv.ref, variable.unit, outlier.factor, numCores = 2)
 #' }
 #' @export
-zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, outlier.factor = 1000,
-    my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.", plot.width = 8, plot.height = 3.8, numCores = 2,
-    timeInt = "month", outputDir = FALSE) {
-
+zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, outlier.factor = 1000, 
+    my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.", plot.width = 8, plot.height = 3.8, 
+    numCores = 2, timeInt = "month", outputDir = FALSE) {
+    
     regular <- "+proj=longlat +ellps=WGS84"
     rotated <- my.projection
     # get variable name
@@ -75,7 +75,7 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
         lon <- ncdf4::ncvar_get(nc, "lon")
         lat <- ncdf4::ncvar_get(nc, "lat")
         time <- ncdf4::ncvar_get(nc, "time")
-        #
+        # 
         nCol <- base::length(lon[, 1])
         nRow <- base::length(lon[1, ])
         nTime <- base::length(time)
@@ -89,10 +89,10 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
         end.date <- max(dates)
         start.date <- format(as.Date(start.date), "%Y-%m")
         end.date <- format(as.Date(end.date), "%Y-%m")
-
+        
         lon <- base::matrix(lon, ncol = 1)
         lat <- base::matrix(lat, ncol = 1)
-
+        
         lonLat <- base::data.frame(lon, lat)
         sp::coordinates(lonLat) <- ~lon + lat
         raster::projection(lonLat) <- regular
@@ -110,7 +110,7 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
             raster::extent(r) <- myExtent  # extent using the rotated projection
             r <- r * 1  # this is necessary for the base::do.call function below
         }
-
+        
         myStack <- base::do.call(raster::stack, myRaster)
         parallel::stopCluster(cl)
         myStack <- raster::setZ(myStack, dates, name = "time")
@@ -118,29 +118,31 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
         assign(paste(c("mod", "ref")[id], sep = ""), myStack)
         assign(paste("start.date", c("mod", "ref")[id], sep = "."), start.date)
         assign(paste("end.date", c("mod", "ref")[id], sep = "."), end.date)
-
+        
     }
-
+    
     # find common time period
     start.date <- max(start.date.mod, start.date.ref)
     end.date <- min(end.date.mod, end.date.ref)
-
+    
     # subset common time period
-    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= end.date)]]
-    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)), "%Y-%m") <= end.date)]]
-
+    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= 
+        end.date)]]
+    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)), "%Y-%m") <= 
+        end.date)]]
+    
     # get layer names
     mod.names <- names(mod)
     ref.names <- names(ref)
-
+    
     # unit conversion if appropriate
     mod <- mod * unit.conv.mod
     ref <- ref * unit.conv.ref
-
+    
     # Make a string that summarizes metadata. This will be added to each netcdf file (longname).
-
+    
     # The string can then be accessed like this: names(raster(file.nc))
-
+    
     meta.data.mod <- paste(variable.name, mod.id, "from", start.date, "to", end.date, sep = "_")
     meta.data.ref <- paste(variable.name, ref.id, "from", start.date, "to", end.date, sep = "_")
     meta.data.com <- paste(variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date, sep = "_")
@@ -153,7 +155,7 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
     mod.mask_outliers <- mod.mask_outliers - mod.mask_outliers + 1
     mod <- mod * mod.mask_outliers
     names(mod) <- mod.names
-
+    
     # reference data
     ref.mean <- raster::mean(ref, na.rm = TRUE)  # time mean
     ref.outlier_range <- intFun.grid.define.outlier(ref.mean, outlier.factor)  # define outlier range
@@ -163,18 +165,18 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
     ref.mask_outliers <- ref.mask_outliers - ref.mask_outliers + 1
     ref <- ref * ref.mask_outliers
     names(ref) <- ref.names
-
-
+    
+    
     # Ensure that both data sets use the same grid cells
     mask <- mod.mean * ref.mean
     mask <- mask - mask + 1
-
+    
     mod <- mod * mask
     ref <- ref * mask
-
-
+    
+    
     # Compute zonal mean
-
+    
     data.list <- list(mod, ref)
     names <- c("mod", "ref")
     for (i in 1:length(data.list)) {
@@ -183,7 +185,7 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
         values <- raster::getValues(data.mean)
         xy <- sp::coordinates(data.mean)
         data <- data.frame(xy, values)
-
+        
         sp::coordinates(data) <- ~x + y
         raster::projection(data) <- my.projection
         data <- sp::spTransform(data, sp::CRS(regular))
@@ -191,37 +193,37 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
         data <- data.frame(lonLat, data$values)
         colnames(data) <- c("lon", "lat", "values")
         data <- stats::na.omit(data)  # omit rows with NA
-
+        
         zone <- round(data$lat, 0)
         data <- data.frame(zone, data)
         index <- list(data$zone)
-
+        
         # define function that computes quantiles
         fun.q25 <- function(x) {
             q25 <- stats::quantile(x, probs = c(0.25), na.rm = TRUE)
             return(q25)
         }
-
+        
         fun.q75 <- function(x) {
             q75 <- stats::quantile(x, probs = c(0.75), na.rm = TRUE)
             return(q75)
         }
-
+        
         zonal.mean.mean <- tapply(data$values, index, mean)
         zonal.mean.min <- tapply(data$values, index, fun.q25)
         zonal.mean.max <- tapply(data$values, index, fun.q75)
-
+        
         zone <- as.numeric(rownames(zonal.mean.mean))
-
+        
         # combine values rbind(zonal.mean.min, zonal.mean.max)
         zonal.mean <- data.frame(zone, zonal.mean.min, zonal.mean.max, zonal.mean.mean)
         zonal.mean <- stats::na.omit(zonal.mean)  # omit rows with NA
         colnames(zonal.mean) <- c("lat", "q25", "q75", "mean")
         assign(paste("zonal.mean", names[i], sep = "."), zonal.mean)
     }
-
+    
     # prepare plot file name
-
+    
     my.filename <- paste(variable.name, ref.id, "zonalMean", sep = "-")
     # plot title
     my.title <- paste("Zonal mean", variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date)
@@ -230,14 +232,14 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
     my.col.ref <- "red"
     my.col.mod.range <- grDevices::adjustcolor(my.col.mod, alpha = 0.25)
     my.col.ref.range <- grDevices::adjustcolor(my.col.ref, alpha = 0.25)
-
+    
     # limits
     my.xlim <- c(min(zonal.mean.mod[1], zonal.mean.ref[1]), max(zonal.mean.mod[1], zonal.mean.ref[1]))
     my.ylim <- c(min(zonal.mean.mod[2], zonal.mean.ref[2]), max(zonal.mean.mod[3], zonal.mean.ref[3]))
-
+    
     # legend bar text
     legend.bar.text <- latex2exp::TeX(variable.unit)
-
+    
     # model data polygons for uncertainty range
     zonal.mean <- zonal.mean.mod
     zone <- zonal.mean$lat
@@ -247,7 +249,7 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
     poly.x.mod <- c(zone, rev(zone))
     poly.y.mod <- c(zonal.mean.min, rev(zonal.mean.max))
     zone.mod <- zone
-
+    
     # reference data polygons for uncertainty range
     zonal.mean <- zonal.mean.ref
     zone <- zonal.mean$lat
@@ -257,16 +259,16 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
     poly.x.ref <- c(zone, rev(zone))
     poly.y.ref <- c(zonal.mean.min, rev(zonal.mean.max))
     zone.ref <- zone
-
+    
     # plot
-    oldpar <- graphics::par(mfrow = c(1,2))
+    oldpar <- graphics::par(mfrow = c(1, 2))
     on.exit(graphics::par(oldpar))
     if (outputDir != FALSE) {
         grDevices::pdf(paste(outputDir, "/", my.filename, ".pdf", sep = ""), width = plot.width, height = plot.height)
     }
     graphics::par(font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, tcl = 0.3)
     # plot
-    graphics::plot(zonal.mean.ref$lat, zonal.mean.ref$q75, main = paste(long.name, my.title, sep = "\n"), type = "l", xlab = "degrees latitude",
+    graphics::plot(zonal.mean.ref$lat, zonal.mean.ref$q75, main = paste(long.name, my.title, sep = "\n"), type = "l", xlab = "degrees latitude", 
         ylab = legend.bar.text, xlim = my.xlim, ylim = my.ylim, col = NA, las = 1)
     # ref
     graphics::polygon(poly.x.ref, poly.y.ref, col = my.col.ref.range, border = NA)
@@ -275,17 +277,18 @@ zonalMeanIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.
     graphics::polygon(poly.x.mod, poly.y.mod, col = my.col.mod.range, border = NA)
     graphics::lines(zone.mod, zonal.mean.mod$mean, col = my.col.mod, lwd = 2)
     # legend
-    graphics::legend("topright", c("model mean and IQR", "reference mean and IQR"), col = c(my.col.mod, my.col.ref), lwd = 2, bty = "n")
+    graphics::legend("topright", c("model mean and IQR", "reference mean and IQR"), col = c(my.col.mod, my.col.ref), lwd = 2, 
+        bty = "n")
     # ticks
     graphics::axis(1, at = seq(-90, 90, 10), labels = FALSE, tcl = 0.3)
     graphics::axis(3, at = seq(-90, 90, 10), labels = FALSE, tcl = 0.3)
     graphics::axis(4, labels = FALSE, tcl = 0.3)
-
+    
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }
 }
-if (getRversion() >= "2.15.1") utils::globalVariables(c("zonal.mean.mod", "zonal.mean.ref", "start.date.mod", "start.date.ref", "end.date.mod",
-    "end.date.ref"))
+if (getRversion() >= "2.15.1") utils::globalVariables(c("zonal.mean.mod", "zonal.mean.ref", "start.date.mod", "start.date.ref", 
+    "end.date.mod", "end.date.ref"))
 
 

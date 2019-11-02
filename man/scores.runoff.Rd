@@ -54,7 +54,7 @@ the model data
 the reference data
 (mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}),
 statistical metrics
-(bias, \eqn{bias}; root mean square error, \eqn{rmse}),
+(bias, \eqn{bias}; centralized root mean square error, \eqn{crmse}),
 and scores
 (bias score, \eqn{bias.score}; root mean square error score, \eqn{rmse.score}; inter-annual variability score \eqn{iav.score}).
 
@@ -77,7 +77,13 @@ The latter includes the bias, root-mean-square error,
 inter-annual variability, and spatial distribution. The corresponding equations
 are documented in \code{\link{amber-package}}. Contrary to the function
 \link{scores.grid.time}, no phase score is computed since data is evaluated on
-an annual basis.
+an annual basis. Assessing annual rather than monthly values causes the standard
+deviation \eqn{sigma_{ref}(\lambda, \phi)} to be very small. For this reason,
+the relative errors for runoff are computed with repect to the mean rather than
+the standard deviation:
+
+\eqn{(ii) \ \varepsilon_{bias}=|bias(\lambda, \phi)|/\overline{v_{ref}}(\lambda, \phi)}
+\eqn{(ii) \ \varepsilon_{rmse}(\lambda, \phi)=crmse(\lambda, \phi)/\overline{v_{ref}}(\lambda, \phi).}
 }
 \examples{
 

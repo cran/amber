@@ -1,4 +1,4 @@
-################################################################################
+################################################################################ 
 #' Plots raster layers of a raster stack object
 #' @description This function plots the results from \link{scores.grid.time} and
 #' \link{scores.grid.notime}.
@@ -100,17 +100,17 @@
 #' shp.filename, my.xlim, my.ylim, plot.width, plot.height)
 #' }
 #' @export
-plotGrid <- function(long.name, plot.me, irregular = FALSE, my.projection = "+proj=longlat +ellps=WGS84", shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp",
+plotGrid <- function(long.name, plot.me, irregular = FALSE, my.projection = "+proj=longlat +ellps=WGS84", shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp", 
     package = "amber"), my.xlim = c(-180, 180), my.ylim = c(-60, 85), plot.width = 8, plot.height = 3.8, outputDir = FALSE) {
-
+    
     land <- intFun.coast(my.xlim, my.ylim, my.projection, shp.filename)  # reproject coastline
     # loop through all layers of the raster stack
-
+    
     mod.outlier.points <- plot.me[[2]]
     ref.outlier.points <- plot.me[[3]]
-    if (length(plot.me) > 3)
+    if (length(plot.me) > 3) 
         bias.significance <- plot.me[[4]]
-
+    
     plot.me <- plot.me[[1]]
     for (i in 1:raster::nlayers(plot.me)) {
         data <- plot.me[[i:i]]
@@ -121,7 +121,7 @@ plotGrid <- function(long.name, plot.me, irregular = FALSE, my.projection = "+pr
         my.title <- gsub("_", " ", id)
         min.max.int <- unlist(meta[3])
         legend.bar.text <- latex2exp::TeX(meta[[4]])
-
+        
         # for legend
         min <- min.max.int[1]
         max <- min.max.int[2]
@@ -132,11 +132,11 @@ plotGrid <- function(long.name, plot.me, irregular = FALSE, my.projection = "+pr
         # color options: 'magma', 'inferno', 'plasma', 'viridis', 'cividis'
         my.col.bias <- scico::scico(n = length(my.breaks) - 1, palette = "vik")
         my.col.phase <- grDevices::rainbow(n = length(my.breaks) - 1)
-        if (i == 3)
+        if (i == 3) 
             {
                 my.col <- my.col.bias
             }  # divergent color scheme for bias plots
-        if (i == 7 || i == 8)
+        if (i == 7 || i == 8) 
             {
                 my.col <- my.col.phase
             }  # circular color scheme for phase plots
@@ -149,40 +149,40 @@ plotGrid <- function(long.name, plot.me, irregular = FALSE, my.projection = "+pr
         dummy <- stats::runif(360 * 180, min = min, max = max)
         dummy <- matrix(dummy, nrow = 180)
         dummy <- raster::raster(dummy)
-
+        
         if (irregular == FALSE) {
             myExtent <- c(-180, 180, -90, 90)
         }
         if (irregular == TRUE) {
             myExtent <- c(0.8553854, 2.041861, -0.1171118, 0.4934048)
         }
-
+        
         raster::extent(dummy) <- myExtent
         # plot
-        oldpar <- graphics::par(mfrow = c(1,2))
+        oldpar <- graphics::par(mfrow = c(1, 2))
         on.exit(graphics::par(oldpar))
-
+        
         if (outputDir != FALSE) {
             grDevices::pdf(paste(outputDir, "/", my.filename, ".pdf", sep = ""), width = plot.width, height = plot.height)
         }
         graphics::par(font.main = 1, mar = c(3, 3, 3, 4), lwd = 1, cex = 1)
         my.xlim <- c(raster::extent(land)[1], raster::extent(land)[2])
         my.ylim <- c(raster::extent(land)[3], raster::extent(land)[4])
-        raster::plot(dummy, col = NA, legend = FALSE, xlim = my.xlim, ylim = my.ylim, main = paste(long.name, my.title, sep = "\n"),
-            axes = FALSE)
+        raster::plot(dummy, col = NA, legend = FALSE, xlim = my.xlim, ylim = my.ylim, main = paste(long.name, my.title, 
+            sep = "\n"), axes = FALSE)
         raster::plot(land, col = "grey", border = NA, add = TRUE)
         raster::plot(data, col = my.col, breaks = my.breaks, legend = FALSE, add = TRUE)
         # mark grid cells with extreme outliers
-        if (i == 1)
+        if (i == 1) 
             {
                 graphics::points(mod.outlier.points, pch = 16, cex = 1, col = "red")
             }  # mod.mean
-        if (i == 2)
+        if (i == 2) 
             {
                 graphics::points(ref.outlier.points, pch = 16, cex = 1, col = "red")
             }  # ref.mean
         # mark grid cells where bias is not statistically significant
-        if (i == 3 & exists("bias.significance") == TRUE)
+        if (i == 3 & exists("bias.significance") == TRUE) 
             {
                 bias.significance <- raster::rasterToPoints(bias.significance)
                 if (irregular == FALSE) {
@@ -192,7 +192,7 @@ plotGrid <- function(long.name, plot.me, irregular = FALSE, my.projection = "+pr
                   graphics::points(bias.significance, pch = 16, cex = 0.1)
                 }
             }  # non-significant differences are marked with dots
-
+        
         plot(land, add = TRUE)
         if (irregular == FALSE) {
             graphics::axis(1, labels = TRUE, tcl = 0.3)
@@ -200,8 +200,8 @@ plotGrid <- function(long.name, plot.me, irregular = FALSE, my.projection = "+pr
         if (irregular == FALSE) {
             graphics::axis(2, labels = TRUE, tcl = 0.3, las = 2)
         }
-        plot(data, legend.only = TRUE, col = my.col, breaks = my.breaks, axis.args = my.axis.args, legend.args = my.legend.args, legend.width = 1.5,
-            legend.shrink = 1, font = 1)
+        plot(data, legend.only = TRUE, col = my.col, breaks = my.breaks, axis.args = my.axis.args, legend.args = my.legend.args, 
+            legend.width = 1.5, legend.shrink = 1, font = 1)
         if (outputDir != FALSE) {
             grDevices::dev.off()
         }

@@ -64,7 +64,7 @@ the model data at the location of FLUXNET sites
 the reference data
 (mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}; month of annual cycle maximum, \eqn{ref.max.month}),
 statistical metrics
-(bias, \eqn{bias}; root mean square error, \eqn{rmse}; time difference of the annual cycle maximum, \eqn{phase}),
+(bias, \eqn{bias}; centralized root mean square error, \eqn{crmse}; time difference of the annual cycle maximum, \eqn{phase}),
 and scores
 (bias score, \eqn{bias.score}; root mean square error score, \eqn{rmse.score}; inter-annual variability score \eqn{iav.score}; annual cycle score (\eqn{phase.score}).
 

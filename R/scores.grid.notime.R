@@ -1,4 +1,4 @@
-################################################################################
+################################################################################ 
 #' Scores for gridded reference data that do not have a varying time dimension
 #' @description This function compares model output against remote-sensing
 #' based reference data that do not vary in time. The performance of a model is
@@ -39,7 +39,7 @@
 #' @param numCores An integer that defines the number of cores, e.g. 2
 #' @param period An R obect that gives the period over which to average the model data, e.g. c('1980-01', '2017-12')
 #' @param timeInt A string that gives the time interval of the model data, e.g. 'month' or 'year'
-#' @param outputDir A string that gives the output directory, e.g. "/home/project/study". The output will only be written if the user specifies an output directory.
+#' @param outputDir A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.
 #'
 #' @return (1) A list that contains three elements. The first element is a
 #' raster stack with model data
@@ -52,7 +52,7 @@
 #' The content of the list can be plotted using \link{plotGrid}.
 #'
 #' (2) NetCDF files for each of the statistical variables listed above.
-#
+# 
 #' (3) Three text files: (i) score values and (ii) score inputs averaged across
 #' the entire grid, and (iii) score values for each individual grid cell.
 #'
@@ -129,18 +129,18 @@
 #' shp.filename, my.xlim, my.ylim, plot.width, plot.height)
 #' }
 #' @export
-scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit,
-    score.weights = c(1, 2, 1, 1, 1), outlier.factor = 1000, irregular = FALSE, my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.",
+scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, score.weights = c(1, 
+    2, 1, 1, 1), outlier.factor = 1000, irregular = FALSE, my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.", 
     numCores = 2, period = c("1980-01", "2017-12"), timeInt = "month", outputDir = FALSE) {
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (I) Data preparation
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (1) Reproject data from an irregular to a regular grid if 'irregular=TRUE'
-
+    
     if (irregular == TRUE) {
         regular <- "+proj=longlat +ellps=WGS84"
         rotated <- my.projection
@@ -160,7 +160,7 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
             lon <- ncdf4::ncvar_get(nc, "lon")
             lat <- ncdf4::ncvar_get(nc, "lat")
             time <- ncdf4::ncvar_get(nc, "time")
-            #
+            # 
             nCol <- base::length(lon[, 1])
             nRow <- base::length(lon[1, ])
             nTime <- base::length(time)
@@ -174,10 +174,10 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
             end.date <- max(dates)
             start.date <- format(as.Date(start.date), "%Y-%m")
             end.date <- format(as.Date(end.date), "%Y-%m")
-
+            
             lon <- base::matrix(lon, ncol = 1)
             lat <- base::matrix(lat, ncol = 1)
-
+            
             lonLat <- base::data.frame(lon, lat)
             sp::coordinates(lonLat) <- ~lon + lat
             raster::projection(lonLat) <- regular
@@ -208,75 +208,75 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
         # model data are averaged over a period since the reference data set has no time dimension
         start.date <- period[1]
         end.date <- period[2]
-
-        mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)),
+        
+        mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), 
             "%Y-%m") <= end.date)]]
         mod <- raster::mean(mod, na.rm = TRUE)
-
+        
         nc <- ncdf4::nc_open(nc.mod)
         variable.name <- names(nc[["var"]])
         ncdf4::nc_close(nc)
         variable.name <- variable.name[1]
         variable.name <- ifelse(variable.name == "burntFractionAll", "burnt", variable.name)  # rename burntFractionAll to shorter name
         variable.name <- toupper(variable.name)  # make variable name upper-case
-
+        
         # unit conversion if appropriate
         mod <- mod * unit.conv.mod
         ref <- ref * unit.conv.ref
-
+        
         # get layer names
         mod.names <- names(mod)
         ref.names <- names(ref)
     } else {
-
+        
         #-----------------------------------------------------------------------
-
+        
         # (2) Process data if 'irregular=FALSE'
-
+        
         #-----------------------------------------------------------------------
-
+        
         # model data are averaged over a period since the reference data set has no time dimension
         start.date <- period[1]
         end.date <- period[2]
-
+        
         mod <- raster::brick(nc.mod)
         mod <- raster::rotate(mod)
         dates.mod <- raster::getZ(mod)
-
+        
         mod <- raster::setZ(mod, dates.mod, name = "date")
-        mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)),
+        mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), 
             "%Y-%m") <= end.date)]]
         mod <- raster::mean(mod, na.rm = TRUE)
-
+        
         nc <- ncdf4::nc_open(nc.mod)
         variable.name <- names(nc[["var"]])
         ncdf4::nc_close(nc)
         variable.name <- variable.name[length(variable.name)]  # take the last variable (relevant for CanESM5)
         variable.name <- ifelse(variable.name == "burntFractionAll", "burnt", variable.name)  # rename burntFractionAll to shorter name
         variable.name <- toupper(variable.name)  # make variable name upper-case
-
+        
         # reference data
         ref <- raster::raster(nc.ref)  # this reference data has no time dimension
         ref <- raster::rotate(ref)
         # unit conversion if appropriate
         mod <- mod * unit.conv.mod
         ref <- ref * unit.conv.ref
-
+        
         # get layer names
         mod.names <- names(mod)
         ref.names <- names(ref)
     }
-
+    
     #---------------------------------------------------------------------------
-
+    
     # 1.3 Remaining part applies to both regular and irregular gridded data
-
+    
     #---------------------------------------------------------------------------
-
+    
     # Make a string that summarizes metadata. This will be added to each netcdf file (longname).
-
+    
     # The string can then be accessed like this: names(raster(file.nc))
-
+    
     meta.data.mod <- paste(variable.name, mod.id, "from", start.date, "to", end.date, sep = "_")
     meta.data.ref <- paste(variable.name, ref.id, "from", start.date, "to", end.date, sep = "_")
     meta.data.com <- paste(variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date, sep = "_")
@@ -300,15 +300,15 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     ref <- ref * ref.mask_outliers
     names(ref) <- ref.names
     ref.outlier.points <- intFun.grid.outliers.points(ref.mean, outlier.neg, outlier.pos)
-
+    
     #---------------------------------------------------------------------------
-
+    
     # II Statistical analysis
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (1) Bias
-
+    
     #---------------------------------------------------------------------------
     mod.mean <- mod  # data is already time mean
     ref.mean <- ref  # data is already time mean
@@ -323,11 +323,11 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     bias.scalar <- mean(raster::getValues(bias), na.rm = TRUE)  # global mean value
     ref.sd.scalar <- NA  # global mean value
     epsilon_bias.scalar <- NA  # global mean value
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (5) dist
-
+    
     #---------------------------------------------------------------------------
     mod.sigma.scalar <- sd(raster::getValues(mod.mean), na.rm = TRUE)  # standard deviation of period mean data
     ref.sigma.scalar <- sd(raster::getValues(ref.mean), na.rm = TRUE)  # standard deviation of period mean data
@@ -337,13 +337,13 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     reg <- stats::lm(y ~ x)
     R <- sqrt(summary(reg)$r.squared)
     S_dist <- 2 * (1 + R)/(sigma + 1/sigma)^2  # weighting does not apply
-
+    
     #---------------------------------------------------------------------------
-
+    
     # Scores
-
+    
     #---------------------------------------------------------------------------
-
+    
     S_bias <- S_bias_not.weighted
     S_rmse <- NA
     S_phase <- NA
@@ -360,17 +360,21 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     S_overall <- S_dist
     scores <- data.frame(variable.name, ref.id, S_bias, S_rmse, S_phase, S_iav, S_dist, S_overall)
     scores_weighted <- scores
-    #
+    # 
     scores <- rbind(scores_not.weighted, scores_weighted)
     rownames(scores) <- c("not.weighted", "weighted")
-    if (outputDir != FALSE) {utils::write.table(scores, paste(outputDir, "/", "scorevalues", "_", meta.data.com, sep = ""))}
-    # get all score values in case you want to compare this run against another run having all values will enable
-    # you to conduct a significance test
+    if (outputDir != FALSE) {
+        utils::write.table(scores, paste(outputDir, "/", "scorevalues", "_", meta.data.com, sep = ""))
+    }
+    # get all score values in case you want to compare this run against another run having all values will enable you to
+    # conduct a significance test
     dist.score <- raster::getValues(mask * S_dist)
     all.score.values <- data.frame(NA, NA, NA, NA, dist.score)
     colnames(all.score.values) <- c("bias.score", "rmse.score", "phase.score", "iav.score", "dist.score")
     all.score.values[is.na(all.score.values)] <- NA  # converts all NaN to NA
-    if (outputDir != FALSE) {utils::write.table(all.score.values, paste(outputDir, "/", "allscorevalues", variable.name, "-", ref.id, sep = ""))}
+    if (outputDir != FALSE) {
+        utils::write.table(all.score.values, paste(outputDir, "/", "allscorevalues", variable.name, "-", ref.id, sep = ""))
+    }
     # selected score inputs
     rmse.scalar <- NA
     crmse.scalar <- NA
@@ -384,29 +388,29 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     S_phase_not.weighted <- NA
     epsilon_iav.scalar <- NA
     S_iav_not.weighted <- NA
-
-    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar,
-        bias.scalar, ref.sd.scalar, epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar,
-        epsilon_rmse.scalar, S_rmse_not.weighted, mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted,
-        mod.iav.scalar, ref.iav.scalar, epsilon_iav.scalar, S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar,
-        sigma, R, S_dist)
-    if (outputDir != FALSE) {utils::write.table(scoreinputs, paste(outputDir, "/", "scoreinputs", "_", meta.data.com, sep = ""))}
-    # function that returns the min, max, and interval used in legend function min.max.int only requires one input
-    # apply the functions min.max.int and min.max.int.mod.ref min.max.int
+    
+    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar, bias.scalar, 
+        ref.sd.scalar, epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar, epsilon_rmse.scalar, 
+        S_rmse_not.weighted, mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted, mod.iav.scalar, 
+        ref.iav.scalar, epsilon_iav.scalar, S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar, sigma, R, S_dist)
+    if (outputDir != FALSE) {
+        utils::write.table(scoreinputs, paste(outputDir, "/", "scoreinputs", "_", meta.data.com, sep = ""))
+    }
+    # function that returns the min, max, and interval used in legend function min.max.int only requires one input apply the
+    # functions min.max.int and min.max.int.mod.ref min.max.int
     mmi.bias <- intFun.min.max.int.bias(bias)
     mmi.mean <- intFun.min.max.int.mod.ref(mod.mean, ref.mean)
-    # add metadata: 1. filename (e.g. nee_mod.mean.nc), 2. figure title (e.g.
-    # Mean_nee_ModID_123_from_1982-01_to_2008-12), 3.  min, max, interval used in legend (e.g. 0, 1, 0.1), 4.
-    # legend bar text (e.g. 'score (-)')
-    raster::metadata(mod.mean) <- list(paste(variable.name, ref.id, "mod_mean", sep = "_"), paste("Mean", meta.data.mod,
+    # add metadata: 1. filename (e.g. nee_mod.mean.nc), 2. figure title (e.g.  Mean_nee_ModID_123_from_1982-01_to_2008-12),
+    # 3.  min, max, interval used in legend (e.g. 0, 1, 0.1), 4.  legend bar text (e.g. 'score (-)')
+    raster::metadata(mod.mean) <- list(paste(variable.name, ref.id, "mod_mean", sep = "_"), paste("Mean", meta.data.mod, 
         sep = "_"), mmi.mean, variable.unit)
-    raster::metadata(ref.mean) <- list(paste(variable.name, ref.id, "ref_mean", sep = "_"), paste("Mean", meta.data.ref,
+    raster::metadata(ref.mean) <- list(paste(variable.name, ref.id, "ref_mean", sep = "_"), paste("Mean", meta.data.ref, 
         sep = "_"), mmi.mean, variable.unit)
-    raster::metadata(bias) <- list(paste(variable.name, ref.id, "bias", sep = "_"), paste("Bias", meta.data.com,
-        sep = "_"), mmi.bias, variable.unit)
-
+    raster::metadata(bias) <- list(paste(variable.name, ref.id, "bias", sep = "_"), paste("Bias", meta.data.com, sep = "_"), 
+        mmi.bias, variable.unit)
+    
     # create a netcdf file from stat.metric
-
+    
     stat.metric <- raster::stack(mod.mean, ref.mean, bias)
     for (i in 1:raster::nlayers(stat.metric)) {
         data <- raster::subset(stat.metric, i:i)
@@ -414,8 +418,10 @@ scores.grid.notime <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
         my.filename <- gsub("_", "-", my.filename)
         my.filename <- gsub(".", "-", my.filename, fixed = TRUE)
         my.longname <- unlist(raster::metadata(data)[2])
-        if (outputDir != FALSE) {raster::writeRaster(data, filename = paste(outputDir, my.filename, sep = "/"), format = "CDF", varname = variable.name, longname = my.longname,
-            varunit = variable.unit, overwrite = TRUE)}
+        if (outputDir != FALSE) {
+            raster::writeRaster(data, filename = paste(outputDir, my.filename, sep = "/"), format = "CDF", varname = variable.name, 
+                longname = my.longname, varunit = variable.unit, overwrite = TRUE)
+        }
     }
     return(list(stat.metric, mod.outlier.points, ref.outlier.points))
 }

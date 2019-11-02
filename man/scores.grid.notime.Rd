@@ -48,7 +48,7 @@ exceed the interquartile range multiplied by the outlier factor defined here.}
 
 \item{timeInt}{A string that gives the time interval of the model data, e.g. 'month' or 'year'}
 
-\item{outputDir}{A string that gives the output directory, e.g. "/home/project/study". The output will only be written if the user specifies an output directory.}
+\item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
 }
 \value{
 (1) A list that contains three elements. The first element is a

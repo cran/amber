@@ -24,7 +24,6 @@ The resulting minimum and maximum value used by the color scheme are then
 \examples{
 
 library(raster)
-library(spatial.tools)
 library(classInt)
 # create a raster object
 data <- runif(100,-23,864)

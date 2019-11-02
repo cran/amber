@@ -1,4 +1,4 @@
-################################################################################
+################################################################################ 
 #' Response of a variable to its forcing
 #' @description This function conducts a relationship analysis by assessing the functional
 #' response of two variables. The variables consist of a dependent variable \eqn{y}
@@ -62,10 +62,10 @@
 #' x.bin, y.bin, my.xlab, my.ylab)
 #'
 #' @export
-scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, mod.id, ref.id, unit.conv.mod.x, unit.conv.mod.y, unit.conv.ref.x,
-    unit.conv.ref.y, x.bin, y.bin, my.xlab, my.ylab, legendA = "topleft", legendB = "topleft", outputDir = FALSE) {
+scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, mod.id, ref.id, unit.conv.mod.x, unit.conv.mod.y, 
+    unit.conv.ref.x, unit.conv.ref.y, x.bin, y.bin, my.xlab, my.ylab, legendA = "topleft", legendB = "topleft", outputDir = FALSE) {
     # (1) Find a common time period and subset the data accordingly
-
+    
     # variable names (x)
     nc <- ncdf4::nc_open(nc.mod.x)
     variable.name <- names(nc[["var"]])
@@ -73,7 +73,7 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
     variable.name.x <- variable.name
     variable.name.x <- toupper(variable.name.x)
     ncdf4::nc_close(nc)
-
+    
     # variable names (y)
     nc <- ncdf4::nc_open(nc.mod.y)
     variable.name <- names(nc[["var"]])
@@ -95,35 +95,35 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
     dates.ref <- format(as.Date(dates.ref), "%Y-%m")  # only year and month
     start.date.ref <- min(dates.ref)
     end.date.ref <- max(dates.ref)
-
+    
     # find common time period
     start.date <- max(start.date.mod, start.date.ref)
     end.date <- min(end.date.mod, end.date.ref)
-
+    
     # subset common time period
-    mod.x <- mod.x[[which(format(as.Date(raster::getZ(mod.x)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod.x)), "%Y-%m") <=
-        end.date)]]
-    mod.y <- mod.y[[which(format(as.Date(raster::getZ(mod.y)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod.y)), "%Y-%m") <=
-        end.date)]]
-    ref.x <- ref.x[[which(format(as.Date(raster::getZ(ref.x)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref.x)), "%Y-%m") <=
-        end.date)]]
-    ref.y <- ref.y[[which(format(as.Date(raster::getZ(ref.y)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref.y)), "%Y-%m") <=
-        end.date)]]
-
+    mod.x <- mod.x[[which(format(as.Date(raster::getZ(mod.x)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod.x)), 
+        "%Y-%m") <= end.date)]]
+    mod.y <- mod.y[[which(format(as.Date(raster::getZ(mod.y)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod.y)), 
+        "%Y-%m") <= end.date)]]
+    ref.x <- ref.x[[which(format(as.Date(raster::getZ(ref.x)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref.x)), 
+        "%Y-%m") <= end.date)]]
+    ref.y <- ref.y[[which(format(as.Date(raster::getZ(ref.y)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref.y)), 
+        "%Y-%m") <= end.date)]]
+    
     # unit conversion if appropriate
     mod.x <- mod.x * unit.conv.mod.x
     mod.y <- mod.y * unit.conv.mod.y
     ref.x <- ref.x * unit.conv.ref.x
     ref.y <- ref.y * unit.conv.ref.y
-
+    
     my.filename <- paste(variable.name.y, variable.name.x, ref.id, "functional_response", sep = "_")
-
+    
     # (2) Convert data into bins model data
     mod.x.mean <- raster::mean(mod.x, na.rm = TRUE)
     mod.y.mean <- raster::mean(mod.y, na.rm = TRUE)
     ref.x.mean <- raster::mean(ref.x, na.rm = TRUE)
     ref.y.mean <- raster::mean(ref.y, na.rm = TRUE)
-
+    
     # make sure all data is based on the same grid cells
     mask <- (mod.x.mean * mod.y.mean * ref.x.mean * ref.y.mean)
     mask <- mask - mask + 1
@@ -131,13 +131,13 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
     mod.y.mean <- mod.y.mean/mask
     ref.x.mean <- ref.x.mean/mask
     ref.y.mean <- ref.y.mean/mask
-
+    
     # convert to bins
     mod.x.bin <- intFun.bin(mod.x.mean, x.bin)
     mod.y.bin <- intFun.bin(mod.y.mean, y.bin)
     ref.x.bin <- intFun.bin(ref.x.mean, x.bin)
     ref.y.bin <- intFun.bin(ref.y.mean, y.bin)
-
+    
     # (3) calculate the mean value and corresponding variability of gpp for each temperature interval model
     x <- raster::values(mod.x.bin)
     y <- raster::values(mod.y.bin)
@@ -157,7 +157,7 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
     colnames(relation.mod) <- c(variable.name.x, variable.name.y, "sd")
     relation.mod <- merge(relation.mod, freq.x.mod, by = variable.name.x)
     rownames(relation.mod) <- c()
-
+    
     # reference
     x <- raster::values(ref.x.bin)
     y <- raster::values(ref.y.bin)
@@ -179,13 +179,13 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
     rownames(relation.ref) <- c()
     relation.all <- merge(relation.mod, relation.ref, by = variable.name.x, all = TRUE)
     relation <- stats::na.omit(relation.all)  # omit rows with NA
-
+    
     # compute the score
     a <- relation[, 2]
     b <- relation[, 4]
     epsilon.f <- intFun.rel.error(a, b)
     S_funresp <- exp(-epsilon.f)
-
+    
     # colors
     my.col.mod <- "black"
     my.col.ref <- "red"
@@ -196,13 +196,13 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
     poly.y.mod <- c(relation.mod[, 2] + relation.mod[, 3], rev(relation.mod[, 2] - relation.mod[, 3]))
     poly.x.ref <- c(relation.ref[, 1], rev(relation.ref[, 1]))
     poly.y.ref <- c(relation.ref[, 2] + relation.ref[, 3], rev(relation.ref[, 2] - relation.ref[, 3]))
-
+    
     # limits
     my.xlim <- c(min(relation.ref[, 1]), max(relation.ref[, 1]))
     my.ylim <- c(min(poly.y.mod, poly.y.ref), max(poly.y.mod, poly.y.ref))
-
+    
     # plot
-    oldpar <- graphics::par(mfrow = c(1,2))
+    oldpar <- graphics::par(mfrow = c(1, 2))
     on.exit(graphics::par(oldpar))
     my.filename <- gsub("_", "-", my.filename)
     my.filename <- gsub(".", "-", my.filename, fixed = TRUE)
@@ -210,9 +210,9 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
         grDevices::pdf(paste(outputDir, "/", my.filename, ".pdf", sep = ""), width = 3.5, height = 4)
     }
     graphics::par(font.main = 1, mar = c(0, 5, 0, 0), lwd = 1, cex = 1, cex.axis = 1.25, oma = c(5, 1, 3, 1))
-
+    
     my.matrix <- matrix(c(1, 1, 2, 1, 1, 2), ncol = 2)
-
+    
     # defines location of subplots
     graphics::layout(my.matrix)  # defines location of subplots
     plot(relation.mod[, 1], relation.mod[, 2], xlim = my.xlim, ylim = my.ylim, ylab = my.ylab, col = NA, las = 1, axes = FALSE)
@@ -223,31 +223,32 @@ scores.functional.response <- function(nc.mod.x, nc.mod.y, nc.ref.x, nc.ref.y, m
     graphics::points(relation.ref[, 1], relation.ref[, 2], col = my.col.ref, pch = 17)
     graphics::points(relation.mod[, 1], relation.mod[, 2], col = my.col.mod, pch = 16)
     graphics::box()
-    graphics::legend(legendA, c(expression("model mean", paste("model ", sigma, sep = ""), "reference mean", paste("reference ", sigma,
-        sep = ""))), col = c(my.col.mod, my.col.mod.range, my.col.ref, my.col.ref.range), lty = c(1, NA, 1, NA), lwd = 2, pch = c(16,
-        15, 17, 15), bty = "n")
-    # my.legend <- substitute(paste('score = ', score), list(score=round(S_funresp,2))) legend('bottomright', legend=my.legend,
-    # bty='n') Ticks
+    graphics::legend(legendA, c(expression("model mean", paste("model ", sigma, sep = ""), "reference mean", paste("reference ", 
+        sigma, sep = ""))), col = c(my.col.mod, my.col.mod.range, my.col.ref, my.col.ref.range), lty = c(1, NA, 1, NA), 
+        lwd = 2, pch = c(16, 15, 17, 15), bty = "n")
+    # my.legend <- substitute(paste('score = ', score), list(score=round(S_funresp,2))) legend('bottomright',
+    # legend=my.legend, bty='n') Ticks
     graphics::axis(1, labels = FALSE, tcl = 0.3)
     graphics::axis(2, labels = TRUE, tcl = 0.3, las = 2)
     graphics::axis(3, labels = FALSE, tcl = 0.3)
     graphics::axis(4, labels = FALSE, tcl = 0.3)
-    graphics::mtext(paste(mod.id, " vs ", ref.id, "(", start.date, " to ", end.date, ")", sep = ""), side = 3, line = 1, cex = 0.75)
+    graphics::mtext(paste(mod.id, " vs ", ref.id, "(", start.date, " to ", end.date, ")", sep = ""), side = 3, line = 1, 
+        cex = 0.75)
     # grid cell frequency
     my.ylim <- c(0, max(relation.mod[, 4], relation.ref[, 4]))
-
-    plot(x = relation.mod[, 1] - x.bin/8, y = relation.mod[, 4], xlim = my.xlim, ylim = my.ylim, type = "h", col = my.col.mod, xlab = my.xlab,
-        ylab = "grid cell frequency", lwd = 2, las = 1, axes = FALSE)
-    graphics::lines(x = relation.ref[, 1] + x.bin/8, y = relation.ref[, 4], ylim = my.ylim, type = "h", col = my.col.ref, xlab = NA,
-        ylab = NA, lwd = 2)
+    
+    plot(x = relation.mod[, 1] - x.bin/8, y = relation.mod[, 4], xlim = my.xlim, ylim = my.ylim, type = "h", col = my.col.mod, 
+        xlab = my.xlab, ylab = "grid cell frequency", lwd = 2, las = 1, axes = FALSE)
+    graphics::lines(x = relation.ref[, 1] + x.bin/8, y = relation.ref[, 4], ylim = my.ylim, type = "h", col = my.col.ref, 
+        xlab = NA, ylab = NA, lwd = 2)
     graphics::legend(legendB, lwd = 2, col = c(my.col.mod, my.col.ref), c("model", "reference"), bty = "n")
     graphics::box()
     graphics::mtext(my.xlab, side = 1, line = 3, cex = 0.75)
-
+    
     graphics::axis(1, labels = TRUE, tcl = 0.3)
     graphics::axis(2, labels = TRUE, tcl = 0.3, las = 2)
     graphics::axis(4, labels = FALSE, tcl = 0.3)
-
+    
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }

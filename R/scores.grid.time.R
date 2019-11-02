@@ -1,4 +1,4 @@
-################################################################################
+################################################################################ 
 #' Scores for gridded reference data with a varying time dimension
 #' @description This function compares model output against remote-sensing
 #' based reference data that vary in time. The performance of a model is
@@ -33,14 +33,14 @@
 #' @param my.projection A string that defines the projection of the irregular grid
 #' @param numCores An integer that defines the number of cores, e.g. 2
 #' @param timeInt A string that gives the time interval of the model data, e.g. 'month' or 'year'
-#' @param outputDir A string that gives the output directory, e.g. "/home/project/study". The output will only be written if the user specifies an output directory.
+#' @param outputDir A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.
 #'
 #' @return (1) A list that contains three elements. The first element is a a
 #' raster stack with model data
 #' (mean, \eqn{mod.mean}; interannual-variability, \eqn{mod.iav}; month of annual cycle maximum, \eqn{mod.max.month}),
 #' the reference data (mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}; month of annual cycle maximum, \eqn{ref.max.month}),
 #' statistical metrics
-#' (bias, \eqn{bias}; root mean square error, \eqn{rmse}; time difference of the annual cycle maximum, \eqn{phase}),
+#' (bias, \eqn{bias}; centralized root mean square error, \eqn{crmse}; time difference of the annual cycle maximum, \eqn{phase}),
 #' and scores (bias score, \eqn{bias.score}; root mean square error score, \eqn{rmse.score}; inter-annual variability score \eqn{iav.score}; annual cycle score (\eqn{phase.score}).
 #' The second and third element of the list are spatial
 #' point data frames that give the model and reference outliers, respectively.
@@ -120,20 +120,20 @@
 #' shp.filename, my.xlim, my.ylim, plot.width, plot.height)
 #' }
 #' @export
-scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit,
-    score.weights = c(1, 2, 1, 1, 1), outlier.factor = 1000, irregular = FALSE, my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.",
+scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, score.weights = c(1, 
+    2, 1, 1, 1), outlier.factor = 1000, irregular = FALSE, my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.", 
     numCores = 2, timeInt = "month", outputDir = FALSE) {
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (I) Data preparation
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (1) Reproject data from an irregular to a regular grid if 'irregular=TRUE'
-
+    
     #---------------------------------------------------------------------------
-
+    
     if (irregular == TRUE) {
         regular <- "+proj=longlat +ellps=WGS84"
         rotated <- my.projection
@@ -153,7 +153,7 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
             lon <- ncdf4::ncvar_get(nc, "lon")
             lat <- ncdf4::ncvar_get(nc, "lat")
             time <- ncdf4::ncvar_get(nc, "time")
-            #
+            # 
             nCol <- base::length(lon[, 1])
             nRow <- base::length(lon[1, ])
             nTime <- base::length(time)
@@ -167,10 +167,10 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
             end.date <- max(dates)
             start.date <- format(as.Date(start.date), "%Y-%m")
             end.date <- format(as.Date(end.date), "%Y-%m")
-
+            
             lon <- base::matrix(lon, ncol = 1)
             lat <- base::matrix(lat, ncol = 1)
-
+            
             lonLat <- base::data.frame(lon, lat)
             sp::coordinates(lonLat) <- ~lon + lat
             raster::projection(lonLat) <- regular
@@ -197,11 +197,11 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
             assign(paste("end.date", c("mod", "ref")[id], sep = "."), end.date)
         }
     } else {
-
+        
         #-----------------------------------------------------------------------
-
+        
         # (2) Process data if 'irregular=FALSE'
-
+        
         #-----------------------------------------------------------------------
         nc <- ncdf4::nc_open(nc.mod)
         variable.name <- names(nc[["var"]])
@@ -211,12 +211,12 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
         variable.name <- toupper(variable.name)  # make variable name upper-case
         mod <- raster::brick(nc.mod)
         mod <- raster::rotate(mod)
-
+        
         dates.mod <- raster::getZ(mod)
         dates.mod <- format(as.Date(dates.mod), "%Y-%m")  # only year and month
         start.date.mod <- min(dates.mod)
         end.date.mod <- max(dates.mod)
-
+        
         # reference data
         ref <- raster::brick(nc.ref)
         ref <- raster::rotate(ref)
@@ -225,35 +225,35 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
         start.date.ref <- min(dates.ref)
         end.date.ref <- max(dates.ref)
     }
-
+    
     #---------------------------------------------------------------------------
-
+    
     # 1.3 Remaining part applies to both regular and irregular gridded data
-
+    
     #---------------------------------------------------------------------------
-
+    
     # find common time period
     start.date <- max(start.date.mod, start.date.ref)
     end.date <- min(end.date.mod, end.date.ref)
-
+    
     # subset common time period
-    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)),
-        "%Y-%m") <= end.date)]]
-    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)),
-        "%Y-%m") <= end.date)]]
-
+    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= 
+        end.date)]]
+    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)), "%Y-%m") <= 
+        end.date)]]
+    
     # get layer names
     mod.names <- names(mod)
     ref.names <- names(ref)
-
+    
     # unit conversion if appropriate
     mod <- mod * unit.conv.mod
     ref <- ref * unit.conv.ref
-
+    
     # Make a string that summarizes metadata. This will be added to each netcdf file (longname).
-
+    
     # The string can then be accessed like this: names(raster(file.nc))
-
+    
     meta.data.mod <- paste(variable.name, mod.id, "from", start.date, "to", end.date, sep = "_")
     meta.data.ref <- paste(variable.name, ref.id, "from", start.date, "to", end.date, sep = "_")
     meta.data.com <- paste(variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date, sep = "_")
@@ -267,7 +267,7 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     mod <- mod * mod.mask_outliers
     names(mod) <- mod.names
     mod.outlier.points <- intFun.grid.outliers.points(mod.mean, outlier.neg, outlier.pos)
-
+    
     # reference data
     ref.mean <- raster::mean(ref, na.rm = TRUE)  # time mean
     ref.outlier_range <- intFun.grid.define.outlier(ref.mean, outlier.factor)  # define outlier range
@@ -278,15 +278,15 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     ref <- ref * ref.mask_outliers
     names(ref) <- ref.names
     ref.outlier.points <- intFun.grid.outliers.points(ref.mean, outlier.neg, outlier.pos)
-
+    
     #---------------------------------------------------------------------------
-
+    
     # II Statistical analysis
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (1) Bias
-
+    
     #---------------------------------------------------------------------------
     mod.mean <- raster::mean(mod, na.rm = TRUE)  # time mean
     ref.mean <- raster::mean(ref, na.rm = TRUE)  # time mean
@@ -319,11 +319,11 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     # A value of one means that differences are not statistically significant
     bias.significance <- bias.significance - bias.significance + 1
     bias.significance <- bias.significance * no.data  # this excludes grid cells with no data
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (2) root mean square error (rmse)
-
+    
     #---------------------------------------------------------------------------
     rmse <- intFun.rmse(mod, ref)  # rmse
     mod.anom <- mod - mod.mean  # anomaly
@@ -340,13 +340,13 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     rmse.scalar <- mean(raster::getValues(rmse), na.rm = TRUE)  # global mean value
     crmse.scalar <- mean(raster::getValues(crmse), na.rm = TRUE)  # global mean value
     epsilon_rmse.scalar <- mean(raster::getValues(epsilon_rmse), na.rm = TRUE)  # global mean value
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (3) phase shift
-
+    
     #---------------------------------------------------------------------------
-
+    
     index <- format(as.Date(names(ref), format = "X%Y.%m.%d"), format = "%m")
     index <- as.numeric(index)
     mod.clim.mly <- raster::stackApply(mod, index, fun = mean)
@@ -367,13 +367,13 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     mod.max.month.scalar <- mean(raster::getValues(mod.max.month), na.rm = TRUE)
     ref.max.month.scalar <- mean(raster::getValues(ref.max.month), na.rm = TRUE)
     phase.scalar <- mean(raster::getValues(phase), na.rm = TRUE)  # global mean value
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (4) interannual variability
-
+    
     #---------------------------------------------------------------------------
-
+    
     years <- floor(raster::nlayers(mod)/12)  # total number of years
     months <- years * 12  # number of months considering complete years only
     mod.fullyear <- raster::subset(mod, 1:months)
@@ -400,13 +400,13 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     mod.iav.scalar <- mean(raster::getValues(mod.iav), na.rm = TRUE)  # global mean value
     ref.iav.scalar <- mean(raster::getValues(ref.iav), na.rm = TRUE)  # global mean value
     epsilon_iav.scalar <- mean(raster::getValues(epsilon_iav), na.rm = TRUE)  # global mean value
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (5) dist
-
+    
     #---------------------------------------------------------------------------
-
+    
     mod.sigma.scalar <- stats::sd(raster::getValues(mod.mean), na.rm = TRUE)  # standard deviation of period mean data
     ref.sigma.scalar <- stats::sd(raster::getValues(ref.mean), na.rm = TRUE)  # standard deviation of period mean data
     sigma <- mod.sigma.scalar/ref.sigma.scalar
@@ -415,13 +415,13 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     reg <- stats::lm(y ~ x)
     R <- sqrt(summary(reg)$r.squared)
     S_dist <- 2 * (1 + R)/(sigma + 1/sigma)^2  # weighting does not apply
-
+    
     #---------------------------------------------------------------------------
-
+    
     # scores
-
+    
     #---------------------------------------------------------------------------
-
+    
     w.bias <- score.weights[1]
     w.rmse <- score.weights[2]
     w.phase <- score.weights[3]
@@ -433,8 +433,8 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     S_phase <- S_phase_not.weighted
     S_iav <- S_iav_not.weighted
     # weight importance of statisitcal metrics and compute overall score
-    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias +
-        w.rmse + w.phase + w.iav + w.dist)
+    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias + w.rmse + 
+        w.phase + w.iav + w.dist)
     scores <- data.frame(variable.name, ref.id, S_bias, S_rmse, S_phase, S_iav, S_dist, S_overall)
     scores_not.weighted <- scores
     # weighted (except for S_dist)
@@ -442,16 +442,18 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     S_rmse <- S_rmse_weighted
     S_phase <- S_phase_weighted
     S_iav <- S_iav_weighted
-    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias +
-        w.rmse + w.phase + w.iav + w.dist)
+    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias + w.rmse + 
+        w.phase + w.iav + w.dist)
     scores <- data.frame(variable.name, ref.id, S_bias, S_rmse, S_phase, S_iav, S_dist, S_overall)
     scores_weighted <- scores
-    #
+    # 
     scores <- rbind(scores_not.weighted, scores_weighted)
     rownames(scores) <- c("not.weighted", "weighted")
-    if (outputDir != FALSE) {utils::write.table(scores, paste(outputDir, "/", "scorevalues", "_", meta.data.com, sep = ""))}
-    # get all score values in case you want to compare two runs having all values will enable you to conduct a
-    # significance test
+    if (outputDir != FALSE) {
+        utils::write.table(scores, paste(outputDir, "/", "scorevalues", "_", meta.data.com, sep = ""))
+    }
+    # get all score values in case you want to compare two runs having all values will enable you to conduct a significance
+    # test
     bias.score.values <- raster::getValues(bias.score)
     rmse.score.values <- raster::getValues(rmse.score)
     phase.score.values <- raster::getValues(phase.score)
@@ -460,18 +462,21 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     all.score.values <- data.frame(bias.score.values, rmse.score.values, phase.score.values, iav.score.values, dist.score.values)
     colnames(all.score.values) <- c("bias.score", "rmse.score", "phase.score", "iav.score", "dist.score")
     all.score.values[is.na(all.score.values)] <- NA  # converts all NaN to NA
-    if (outputDir != FALSE) {utils::write.table(all.score.values, paste(outputDir, "/", "allscorevalues", variable.name, "-", ref.id, sep = ""))}
+    if (outputDir != FALSE) {
+        utils::write.table(all.score.values, paste(outputDir, "/", "allscorevalues", variable.name, "-", ref.id, sep = ""))
+    }
     # selected score inputs
-    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar,
-        bias.scalar, ref.sd.scalar, epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar,
-        epsilon_rmse.scalar, S_rmse_not.weighted, mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted,
-        mod.iav.scalar, ref.iav.scalar, epsilon_iav.scalar, S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar,
-        sigma, R, S_dist)
-    if (outputDir != FALSE) {utils::write.table(scoreinputs, paste(outputDir, "/", "scoreinputs", "_", meta.data.com, sep = ""))}
+    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar, bias.scalar, 
+        ref.sd.scalar, epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar, epsilon_rmse.scalar, 
+        S_rmse_not.weighted, mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted, mod.iav.scalar, 
+        ref.iav.scalar, epsilon_iav.scalar, S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar, sigma, R, S_dist)
+    if (outputDir != FALSE) {
+        utils::write.table(scoreinputs, paste(outputDir, "/", "scoreinputs", "_", meta.data.com, sep = ""))
+    }
     # function that returns the min, max, and interval used in legend
     mmi.bias <- intFun.min.max.int.bias(bias)
     mmi.bias.score <- c(0, 1, 0.1)
-    mmi.rmse <- intFun.min.max.int(rmse)
+    mmi.crmse <- intFun.min.max.int(crmse)
     mmi.rmse.score <- c(0, 1, 0.1)
     mmi.phase <- c(0, 6, 1)
     mmi.phase.score <- c(0, 1, 0.1)
@@ -480,53 +485,54 @@ scores.grid.time <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.con
     mmi.mean <- intFun.min.max.int.mod.ref(mod.mean, ref.mean)
     mmi.max.month <- c(1, 12, 1)
     mmi.iav <- intFun.min.max.int.mod.ref(mod.iav, ref.iav)
-    # add metadata: 1. filename (e.g. nee_mod.mean.nc), 2. figure title (e.g.
-    # Mean_nee_ModID_123_from_1982-01_to_2008-12), 3.  min, max, interval used in legend (e.g. 0, 1, 0.1), 4.
-    # legend bar text (e.g. 'score (-)')
-    raster::metadata(mod.mean) <- list(paste(variable.name, ref.id, "mod_mean", sep = "_"), paste("Mean", meta.data.mod,
+    # add metadata: 1. filename (e.g. nee_mod.mean.nc), 2. figure title (e.g.  Mean_nee_ModID_123_from_1982-01_to_2008-12),
+    # 3.  min, max, interval used in legend (e.g. 0, 1, 0.1), 4.  legend bar text (e.g. 'score (-)')
+    raster::metadata(mod.mean) <- list(paste(variable.name, ref.id, "mod_mean", sep = "_"), paste("Mean", meta.data.mod, 
         sep = "_"), mmi.mean, variable.unit)
-    raster::metadata(ref.mean) <- list(paste(variable.name, ref.id, "ref_mean", sep = "_"), paste("Mean", meta.data.ref,
+    raster::metadata(ref.mean) <- list(paste(variable.name, ref.id, "ref_mean", sep = "_"), paste("Mean", meta.data.ref, 
         sep = "_"), mmi.mean, variable.unit)
-    raster::metadata(bias) <- list(paste(variable.name, ref.id, "bias", sep = "_"), paste("Bias", meta.data.com,
-        sep = "_"), mmi.bias, variable.unit)
-    raster::metadata(bias.significance) <- list(paste(variable.name, ref.id, "bias_significance", sep = "_"), paste("Bias_significance",
+    raster::metadata(bias) <- list(paste(variable.name, ref.id, "bias", sep = "_"), paste("Bias", meta.data.com, sep = "_"), 
+        mmi.bias, variable.unit)
+    raster::metadata(bias.significance) <- list(paste(variable.name, ref.id, "bias_significance", sep = "_"), paste("Bias_significance", 
         meta.data.com, sep = "_"))
-    raster::metadata(bias.score) <- list(paste(variable.name, ref.id, "bias_score", sep = "_"), paste("Bias_score",
-        meta.data.com, sep = "_"), mmi.bias.score, "score (-)")
-    raster::metadata(rmse) <- list(paste(variable.name, ref.id, "rmse", sep = "_"), paste("RMSE", meta.data.com,
-        sep = "_"), mmi.rmse, variable.unit)
-    raster::metadata(rmse.score) <- list(paste(variable.name, ref.id, "rmse_score", sep = "_"), paste("RMSE_score",
-        meta.data.com, sep = "_"), mmi.rmse.score, "score (-)")
-    raster::metadata(mod.max.month) <- list(paste(variable.name, ref.id, "mod_max_month", sep = "_"), paste("Month_with_max",
+    raster::metadata(bias.score) <- list(paste(variable.name, ref.id, "bias_score", sep = "_"), paste("Bias_score", meta.data.com, 
+        sep = "_"), mmi.bias.score, "score (-)")
+    raster::metadata(crmse) <- list(paste(variable.name, ref.id, "crmse", sep = "_"), paste("CRMSE", meta.data.com, sep = "_"), 
+        mmi.crmse, variable.unit)
+    raster::metadata(rmse.score) <- list(paste(variable.name, ref.id, "rmse_score", sep = "_"), paste("RMSE_score", meta.data.com, 
+        sep = "_"), mmi.rmse.score, "score (-)")
+    raster::metadata(mod.max.month) <- list(paste(variable.name, ref.id, "mod_max_month", sep = "_"), paste("Month_with_max", 
         meta.data.mod, sep = "_"), mmi.max.month, "month")
-    raster::metadata(ref.max.month) <- list(paste(variable.name, ref.id, "ref_max_month", sep = "_"), paste("Month_with_max",
+    raster::metadata(ref.max.month) <- list(paste(variable.name, ref.id, "ref_max_month", sep = "_"), paste("Month_with_max", 
         meta.data.ref, sep = "_"), mmi.max.month, "month")
-    raster::metadata(phase) <- list(paste(variable.name, ref.id, "phase", sep = "_"), paste("Diff_in_max_month",
-        meta.data.com, sep = "_"), mmi.phase, "month")
-    raster::metadata(phase.score) <- list(paste(variable.name, ref.id, "phase_score", sep = "_"), paste("Seasonality_score",
+    raster::metadata(phase) <- list(paste(variable.name, ref.id, "phase", sep = "_"), paste("Diff_in_max_month", meta.data.com, 
+        sep = "_"), mmi.phase, "month")
+    raster::metadata(phase.score) <- list(paste(variable.name, ref.id, "phase_score", sep = "_"), paste("Seasonality_score", 
         meta.data.com, sep = "_"), mmi.phase.score, "score (-)")
-    raster::metadata(mod.iav) <- list(paste(variable.name, ref.id, "mod_iav", sep = "_"), paste("IAV", meta.data.mod,
-        sep = "_"), mmi.iav, variable.unit)
-    raster::metadata(ref.iav) <- list(paste(variable.name, ref.id, "ref_iav", sep = "_"), paste("IAV", meta.data.ref,
-        sep = "_"), mmi.iav, variable.unit)
-    raster::metadata(iav.score) <- list(paste(variable.name, ref.id, "iav_score", sep = "_"), paste("IAV_score",
-        meta.data.com, sep = "_"), mmi.iav.score, "score (-)")
+    raster::metadata(mod.iav) <- list(paste(variable.name, ref.id, "mod_iav", sep = "_"), paste("IAV", meta.data.mod, sep = "_"), 
+        mmi.iav, variable.unit)
+    raster::metadata(ref.iav) <- list(paste(variable.name, ref.id, "ref_iav", sep = "_"), paste("IAV", meta.data.ref, sep = "_"), 
+        mmi.iav, variable.unit)
+    raster::metadata(iav.score) <- list(paste(variable.name, ref.id, "iav_score", sep = "_"), paste("IAV_score", meta.data.com, 
+        sep = "_"), mmi.iav.score, "score (-)")
     # write data to netcdf
-    stat.metric <- raster::stack(mod.mean, ref.mean, bias, bias.score, rmse, rmse.score, mod.max.month, ref.max.month,
+    stat.metric <- raster::stack(mod.mean, ref.mean, bias, bias.score, crmse, rmse.score, mod.max.month, ref.max.month, 
         phase, phase.score, mod.iav, ref.iav, iav.score)
-
+    
     # create a netcdf file from stat.metric
-
+    
     for (i in 1:raster::nlayers(stat.metric)) {
         data <- raster::subset(stat.metric, i:i)
         my.filename <- unlist(raster::metadata(data)[1])
         my.filename <- gsub("_", "-", my.filename)
         my.filename <- gsub(".", "-", my.filename, fixed = TRUE)
         my.longname <- unlist(raster::metadata(data)[2])
-        if (outputDir != FALSE) {raster::writeRaster(data, filename = paste(outputDir, my.filename, sep = "/"), format = "CDF", varname = variable.name, longname = my.longname,
-            varunit = variable.unit, overwrite = TRUE)}
+        if (outputDir != FALSE) {
+            raster::writeRaster(data, filename = paste(outputDir, my.filename, sep = "/"), format = "CDF", varname = variable.name, 
+                longname = my.longname, varunit = variable.unit, overwrite = TRUE)
+        }
     }
-
+    
     return(list(stat.metric, mod.outlier.points, ref.outlier.points, bias.significance))
 }
 if (getRversion() >= "2.15.1") utils::globalVariables(c("getValues", "sd"))

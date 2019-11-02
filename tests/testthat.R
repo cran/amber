@@ -33,7 +33,8 @@ test_that(
     myMean <- mean(result[[1]])
     sample <- myMean[155:160]
     computedValue <- sample
-    documentedValue <- c(1.746210, 1.743733, 1.492706, 1.904318, 1.927370, 1.886606)
+    # documentedValue <- c(1.746210, 1.743733, 1.492706, 1.904318, 1.927370, 1.886606)
+    documentedValue <- c(1.737455, 1.722949, 1.484012, 1.864170, 1.885537, 1.856329)
 
     expect_equal(computedValue, documentedValue, tolerance = 0.001)
   }
@@ -121,7 +122,7 @@ test_that(
 
     result <- read.table(paste(tempdir(), "scorevalues_MRRO_CLASSIC_vs_GRDC_from_2000-01_to_2002-12", sep = "/"))
     computedValue <- result$S_overall
-    documentedValue <- c(0.5142253, 0.4490813)
+    documentedValue <- c(0.7947278, 0.8178388)
 
     expect_equal(computedValue, documentedValue, tolerance = 0.001)
   }

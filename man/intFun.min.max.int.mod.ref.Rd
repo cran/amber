@@ -23,7 +23,6 @@ observation-based data).
 \examples{
 
 library(raster)
-library(spatial.tools)
 library(classInt)
 # create a raster object
 data <- runif(100,-23,864)

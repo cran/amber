@@ -16,15 +16,20 @@ intFun.coast(my.xlim, my.ylim,
 
 \item{shp.filename}{An R string that gives the name of a shapefile that should be reprojected}
 }
+\value{
+Reprojected coastline
+}
 \description{
 This function reprojects the coastline for a specified domain.
 }
 \examples{
 
+library(rgdal)
+library(rgeos)
 my.xlim <- c(-171, -23)
 my.ylim <- c(32, 75)
-my.projection='+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-shp.filename = system.file('extdata/ne_110m_land/ne_110m_land.shp', package = 'amber')
+my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
+shp.filename <- system.file('extdata/ne_110m_land/ne_110m_land.shp', package = 'amber')
 land <- intFun.coast(my.xlim, my.ylim, my.projection, shp.filename)
 raster::plot(land)
 

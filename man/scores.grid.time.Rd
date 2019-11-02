@@ -45,7 +45,7 @@ exceed the interquartile range multiplied by the outlier factor defined here.}
 
 \item{timeInt}{A string that gives the time interval of the model data, e.g. 'month' or 'year'}
 
-\item{outputDir}{A string that gives the output directory, e.g. "/home/project/study". The output will only be written if the user specifies an output directory.}
+\item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
 }
 \value{
 (1) A list that contains three elements. The first element is a a
@@ -53,7 +53,7 @@ raster stack with model data
 (mean, \eqn{mod.mean}; interannual-variability, \eqn{mod.iav}; month of annual cycle maximum, \eqn{mod.max.month}),
 the reference data (mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}; month of annual cycle maximum, \eqn{ref.max.month}),
 statistical metrics
-(bias, \eqn{bias}; root mean square error, \eqn{rmse}; time difference of the annual cycle maximum, \eqn{phase}),
+(bias, \eqn{bias}; centralized root mean square error, \eqn{crmse}; time difference of the annual cycle maximum, \eqn{phase}),
 and scores (bias score, \eqn{bias.score}; root mean square error score, \eqn{rmse.score}; inter-annual variability score \eqn{iav.score}; annual cycle score (\eqn{phase.score}).
 The second and third element of the list are spatial
 point data frames that give the model and reference outliers, respectively.

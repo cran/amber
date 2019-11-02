@@ -15,7 +15,13 @@
 #' inter-annual variability, and spatial distribution. The corresponding equations
 #' are documented in \code{\link{amber-package}}. Contrary to the function
 #' \link{scores.grid.time}, no phase score is computed since data is evaluated on
-#' an annual basis.
+#' an annual basis. Assessing annual rather than monthly values causes the standard
+#' deviation \eqn{sigma_{ref}(\lambda, \phi)} to be very small. For this reason,
+#' the relative errors for runoff are computed with repect to the mean rather than
+#' the standard deviation:
+#'
+#' \eqn{(ii) \ \varepsilon_{bias}=|bias(\lambda, \phi)|/\overline{v_{ref}}(\lambda, \phi)}
+#' \eqn{(ii) \ \varepsilon_{rmse}(\lambda, \phi)=crmse(\lambda, \phi)/\overline{v_{ref}}(\lambda, \phi).}
 #'
 #' @param long.name A string that gives the full name of the variable, e.g. 'Gross primary productivity'
 #' @param nc.mod A string that gives the path and name of the netcdf file that contains the model output, e.g. '/home/model_gpp.nc'
@@ -43,7 +49,7 @@
 #' the reference data
 #' (mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}),
 #' statistical metrics
-#' (bias, \eqn{bias}; root mean square error, \eqn{rmse}),
+#' (bias, \eqn{bias}; centralized root mean square error, \eqn{crmse}),
 #' and scores
 #' (bias score, \eqn{bias.score}; root mean square error score, \eqn{rmse.score}; inter-annual variability score \eqn{iav.score}).
 #'
@@ -73,9 +79,9 @@
 #' unit.conv.ref, variable.unit, score.weights)
 #' }
 #' @export
-scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, score.weights = c(1,
-    2, 1, 1, 1), shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber"), my.xlim = c(-180, 180), my.ylim = c(-60,
-    85), plot.width = 8, plot.height = 3.8, outputDir = FALSE) {
+scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit,
+    score.weights = c(1, 2, 1, 1, 1), shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber"),
+    my.xlim = c(-180, 180), my.ylim = c(-60, 85), plot.width = 8, plot.height = 3.8, outputDir = FALSE) {
 
     # Main steps:
 
@@ -97,7 +103,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
 
     # comment: each of the 50 basins has a basin_index, which ranges from 0 to 49
 
-    # All data must be sorted such that the basin_index increases from 0 to 49 (basins <- basins[order(basins$basin_index),]).
+    # All data must be sorted such that the basin_index increases from 0 to 49 (basins <-
+    # basins[order(basins$basin_index),]).
 
     # projection
     regular <- "+proj=longlat +ellps=WGS84"
@@ -177,7 +184,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     start.date <- max(start.date.mod, start.date.ref)
     end.date <- min(end.date.mod, end.date.ref)
     # subset common time period for model data
-    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= end.date)]]
+    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <=
+        end.date)]]
     # subset common time period for reference data get a sequence of common dates
     dates <- seq(from = as.Date(paste(start.date, "15", sep = "-")), to = as.Date(paste(end.date, "15", sep = "-")), by = "month")
     dates <- format(as.Date(dates), "%Y-%m")
@@ -187,8 +195,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     index <- seq(1, length(dates.ref), 1)
     dates.ref <- data.frame(index, dates.ref)
     colnames(dates.ref) <- c("index", "dates")
-    ## merge common dates and reference dates the index will be used to subset the reference data set if the time covered by the
-    ## reference data exceeds the time covered by the model data
+    ## merge common dates and reference dates the index will be used to subset the reference data set if the time covered by
+    ## the reference data exceeds the time covered by the model data
     column.id <- merge(dates.ref, common.dates, by = "dates")
     column.id <- column.id$index
     basin_index <- ref$basin_index
@@ -226,8 +234,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     basin.area <- t(data.frame(basin.area))
     colnames(basin.area) <- c()
     mod <- raster::extract(mod, basins)
-    # this gives a list of 50 elements, where one element is one basin the columns of each element are months the rows of each element
-    # give the number of grid cells next, sum up the rows for each column
+    # this gives a list of 50 elements, where one element is one basin the columns of each element are months the rows of
+    # each element give the number of grid cells next, sum up the rows for each column
     mod <- data.frame(lapply(mod, colSums, na.rm = TRUE))  # unit: kg basin-1 day-1
     # ncol(mod); nrow(mod)
     colnames(mod) <- basin_index
@@ -281,7 +289,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     weights <- ref.mean  # weights used for spatial integral
     bias <- mod.mean - ref.mean  # time mean
     ref.sd <- apply(ref, 2, sd, na.rm = TRUE)  # standard deviation of reference data
-    epsilon_bias <- abs(bias)/ref.sd  # relative error
+    # epsilon_bias <- abs(bias)/ref.sd  # relative error
+    epsilon_bias <- abs(bias)/ref.mean  # relative error
     bias.score <- exp(-epsilon_bias)  # bias score as a function of space
     S_bias_not.weighted <- mean(bias.score, na.rm = TRUE)  # scalar score (not weighted)
     # calculate the weighted scalar score
@@ -301,7 +310,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     mod.anom <- data.frame(apply(mod, 2, intFun.anom))  # compute anomalies
     ref.anom <- data.frame(apply(ref, 2, intFun.anom))  # compute anomalies
     crmse <- mapply(intFun.crmse, mod.anom, ref.anom)
-    epsilon_rmse <- crmse/ref.sd  # relative error
+    # epsilon_rmse <- crmse/ref.sd  # relative error
+    epsilon_rmse <- crmse/ref.mean  # relative error
     rmse.score <- exp(-epsilon_rmse)  # rmse score as a function of space
     S_rmse_not.weighted <- mean(rmse.score, na.rm = TRUE)  # scalar score (not weighted)
     # calculate the weighted scalar score
@@ -342,8 +352,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     mod.iav.scalar <- mean(mod.iav, na.rm = TRUE)  # global mean value
     ref.iav.scalar <- mean(ref.iav, na.rm = TRUE)  # global mean value
     epsilon_iav.scalar <- mean(epsilon_iav, na.rm = TRUE)  # global mean value
-    # for plotting purposes: mod.iav.points <- intFun.site.points(lon, lat, mod.iav) ref.iav.points <- intFun.site.points(lon, lat,
-    # ref.iav) iav.score.points <- intFun.site.points(lon, lat, iav.score)
+    # for plotting purposes: mod.iav.points <- intFun.site.points(lon, lat, mod.iav) ref.iav.points <-
+    # intFun.site.points(lon, lat, ref.iav) iav.score.points <- intFun.site.points(lon, lat, iav.score)
 
     # (5) dist
 
@@ -404,10 +414,10 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     phase.scalar <- NA
     S_phase_not.weighted <- NA
 
-    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar, bias.scalar, ref.sd.scalar,
-        epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar, epsilon_rmse.scalar, S_rmse_not.weighted,
-        mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted, mod.iav.scalar, ref.iav.scalar, epsilon_iav.scalar,
-        S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar, sigma, R, S_dist)
+    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar, bias.scalar,
+        ref.sd.scalar, epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar, epsilon_rmse.scalar,
+        S_rmse_not.weighted, mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted, mod.iav.scalar,
+        ref.iav.scalar, epsilon_iav.scalar, S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar, sigma, R, S_dist)
 
     if (outputDir != FALSE) {
         utils::write.table(scoreinputs, paste(outputDir, "/", "scoreinputs", "_", meta.data.com, sep = ""))
@@ -417,7 +427,7 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
 
     mmi.bias <- intFun.min.max.int.bias(bias)
     mmi.bias.score <- c(0, 1, 0.1)
-    mmi.rmse <- intFun.min.max.int(rmse)
+    mmi.crmse <- intFun.min.max.int(crmse)
     mmi.rmse.score <- c(0, 1, 0.1)
     # mmi.phase <- c(0,6,1) mmi.phase.score <- intFun.min.max.int(phase.score)
     mmi.iav.score <- c(0, 1, 0.1)
@@ -437,7 +447,7 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
     attr(ref.mean, "metadata") <- list(paste("Mean", meta.data.ref, sep = "_"), mmi.mean, variable.unit)
     attr(bias, "metadata") <- list(paste("Bias", meta.data.com, sep = "_"), mmi.bias, variable.unit)
     attr(bias.score, "metadata") <- list(paste("Bias_score", meta.data.com, sep = "_"), mmi.bias.score, "score (-)")
-    attr(rmse, "metadata") <- list(paste("RMSE", meta.data.com, sep = "_"), mmi.rmse, variable.unit)
+    attr(crmse, "metadata") <- list(paste("CRMSE", meta.data.com, sep = "_"), mmi.crmse, variable.unit)
     attr(rmse.score, "metadata") <- list(paste("RMSE_score", meta.data.com, sep = "_"), mmi.rmse.score, "score (-)")
     # attr(mod.max.month,'metadata') <- list(paste('Month_with_max', meta.data.mod, sep='_'), mmi.max.month, 'month')
     # attr(ref.max.month,'metadata') <- list(paste('Month_with_max', meta.data.ref, sep='_'), mmi.max.month, 'month')
@@ -449,9 +459,9 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
 
     # write data to file
 
-    stat.metric <- data.frame(basin_index, basin.names, lon, lat, mod.mean, ref.mean, bias, bias.score, rmse, rmse.score, mod.max.month,
-        ref.max.month, phase, phase.score, mod.iav, ref.iav, iav.score)
-    colnames(stat.metric) <- c("index", "basin", "lon", "lat", "mod.mean", "ref.mean", "bias", "bias.score", "rmse", "rmse.score",
+    stat.metric <- data.frame(basin_index, basin.names, lon, lat, mod.mean, ref.mean, bias, bias.score, crmse, rmse.score,
+        mod.max.month, ref.max.month, phase, phase.score, mod.iav, ref.iav, iav.score)
+    colnames(stat.metric) <- c("index", "basin", "lon", "lat", "mod.mean", "ref.mean", "bias", "bias.score", "crmse", "rmse.score",
         "mod.max.month", "ref.max.month", "phase", "phase.score", "mod.iav", "ref.iav", "iav.score")
 
     my.filename <- paste(variable.name, "runoff", sep = "_")
@@ -530,7 +540,7 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
         my.plotname <- gsub(".", "-", my.plotname, fixed = TRUE)
 
         # plot
-        oldpar <- graphics::par(mfrow = c(1,2))
+        oldpar <- graphics::par(mfrow = c(1, 2))
         on.exit(graphics::par(oldpar))
         if (outputDir != FALSE) {
             grDevices::pdf(paste(outputDir, "/", my.plotname, ".pdf", sep = ""), width = plot.width, height = plot.height)
@@ -580,8 +590,8 @@ scores.runoff <- function(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, 
         grDevices::pdf(paste(outputDir, "/", "MRRO-scatterplot.pdf", sep = ""), width = 4, height = 4)
     }
     graphics::par(mfrow = c(1, 1), font.main = 1, mar = c(5, 5, 2, 2), lwd = 1, cex.main = 1, tck = 0.03)
-    plot(x, y, pch = 16, xlim = c(min = mmi.mean[1], max = mmi.mean[2]), ylim = c(min = mmi.mean[1], max = mmi.mean[2]), xlab = my.xlab,
-        ylab = my.ylab, main = "Annual mean streamflow of 50 river basins", las = 1)
+    plot(x, y, pch = 16, xlim = c(min = mmi.mean[1], max = mmi.mean[2]), ylim = c(min = mmi.mean[1], max = mmi.mean[2]),
+        xlab = my.xlab, ylab = my.ylab, main = "Annual mean streamflow of 50 river basins", las = 1)
     graphics::legend("topleft", legend = my.legend, bty = "n")
     graphics::abline(0, 1)
     graphics::box()

@@ -1,8 +1,7 @@
 #-------------------------------------------------------------------------------
-# This file contains all internal functions, which consist of a few lines only.  They are used by other functions in the package
-# that do not start with 'intFun.'
+# This file contains all internal functions, which consist of a few lines only.  They are used by other functions in the
+# package that do not start with 'intFun.'
 #-------------------------------------------------------------------------------
-
 # intFun.grid.define.outlier
 #' Upper and lower threshold values that define outliers
 #' @description Plotting raster objects that contain extreme outliers lead to
@@ -299,7 +298,7 @@ intFun.site.points <- function(lon, lat, data) {
 #' @keywords internal
 #' @export
 intFun.rmse <- function(mod, ref) {
-    if (spatial.tools::is.Raster(ref) == TRUE) 
+    if (intFun.isRaster(ref) == TRUE)
         sqrt(raster::mean((mod - ref)^2, na.rm = TRUE)) else sqrt(mean((mod - ref)^2, na.rm = TRUE))
 }
 
@@ -323,7 +322,7 @@ intFun.rmse <- function(mod, ref) {
 #' @keywords internal
 #' @export
 intFun.anom <- function(x) {
-    if (spatial.tools::is.Raster(x) == TRUE) 
+    if (intFun.isRaster(x) == TRUE)
         x - raster::mean(x, na.rm = TRUE) else x - mean(x, na.rm = TRUE)
 }
 
@@ -370,7 +369,7 @@ intFun.anom <- function(x) {
 #' @keywords internal
 #' @export
 intFun.crmse <- function(mod.anom, ref.anom) {
-    if (spatial.tools::is.Raster(ref.anom) == TRUE) 
+    if (intFun.isRaster(ref.anom) == TRUE)
         sqrt(raster::mean((mod.anom - ref.anom)^2, na.rm = TRUE)) else sqrt(mean((mod.anom - ref.anom)^2, na.rm = TRUE))
 }
 
@@ -473,7 +472,6 @@ intFun.iav <- function(anom) {
 #' @examples
 #'
 #' library(raster)
-#' library(spatial.tools)
 #' library(classInt)
 #' # create a raster object
 #' data <- runif(100,-23,864)
@@ -485,7 +483,7 @@ intFun.iav <- function(anom) {
 #' @keywords internal
 #' @export
 intFun.min.max.int <- function(x) {
-    if (spatial.tools::is.Raster(x) == TRUE) {
+    if (intFun.isRaster(x) == TRUE) {
         values <- raster::getValues(x)
     } else {
         values = x
@@ -517,7 +515,6 @@ intFun.min.max.int <- function(x) {
 #' @examples
 #'
 #' library(raster)
-#' library(spatial.tools)
 #' library(classInt)
 #' # create a raster object
 #' data <- runif(100,-23,864)
@@ -531,7 +528,7 @@ intFun.min.max.int <- function(x) {
 #' @keywords internal
 #' @export
 intFun.min.max.int.mod.ref <- function(mod, ref) {
-    if (spatial.tools::is.Raster(ref) == TRUE) {
+    if (intFun.isRaster(ref) == TRUE) {
         values <- c(raster::getValues(mod), raster::getValues(ref))
     } else {
         values <- unlist(c(mod, ref))
@@ -565,7 +562,6 @@ intFun.min.max.int.mod.ref <- function(mod, ref) {
 #' @examples
 #'
 #' library(raster)
-#' library(spatial.tools)
 #' library(classInt)
 #' # create a raster object
 #' data <- runif(100,-23,864)
@@ -577,7 +573,7 @@ intFun.min.max.int.mod.ref <- function(mod, ref) {
 #' @keywords internal
 #' @export
 intFun.min.max.int.bias <- function(x) {
-    if (spatial.tools::is.Raster(x) == TRUE) {
+    if (intFun.isRaster(x) == TRUE) {
         values <- raster::getValues(x)
     } else {
         values = x
@@ -610,7 +606,6 @@ intFun.min.max.int.bias <- function(x) {
 #' @examples
 #'
 #' library(raster)
-#' library(spatial.tools)
 #' library(classInt)
 #' # create a raster object
 #' data <- runif(100,0,10^(-5))
@@ -622,7 +617,7 @@ intFun.min.max.int.bias <- function(x) {
 #' @keywords internal
 #' @export
 intFun.min.max.int.raw <- function(x) {
-    if (spatial.tools::is.Raster(x) == TRUE) {
+    if (intFun.isRaster(x) == TRUE) {
         values <- raster::getValues(x)
     } else {
         values = x
@@ -697,12 +692,15 @@ intFun.rel.error <- function(mod, ref) sqrt(sum((mod - ref)^2)/sum(ref^2))
 #' @param my.ylim An R object with minimum and maximum latitude, e.g. c(32, 75)
 #' @param my.projection An R string that defines the desired projection, e.g. '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
 #' @param shp.filename An R string that gives the name of a shapefile that should be reprojected
+#' @return Reprojected coastline
 #' @examples
 #'
+#' library(rgdal)
+#' library(rgeos)
 #' my.xlim <- c(-171, -23)
 #' my.ylim <- c(32, 75)
-#' my.projection='+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-#' shp.filename = system.file('extdata/ne_110m_land/ne_110m_land.shp', package = 'amber')
+#' my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
+#' shp.filename <- system.file('extdata/ne_110m_land/ne_110m_land.shp', package = 'amber')
 #' land <- intFun.coast(my.xlim, my.ylim, my.projection, shp.filename)
 #' raster::plot(land)
 #'
@@ -726,9 +724,32 @@ intFun.coast <- function(my.xlim, my.ylim, my.projection = "+proj=longlat +ellps
     # coastline
     land <- raster::shapefile(shp.filename)
     raster::projection(land) <- regular
+    land <- rgeos::gBuffer(land, width = 0) # this avoids a Ring Self-intersection error
     land <- raster::crop(land, box)
     land <- sp::spTransform(land, sp::CRS(my.projection))
     return(land)
+}
+
+#-------------------------------------------------------------------------------
+# Functions copied from other packages to reduce dependencies:
+#-------------------------------------------------------------------------------
+# intFun.isRaster
+#' Reproject coastline
+#' @description This function assesses whether an R object is a raster. The original
+#' code was copied from intFun.isRaster (spatial.tools_1.6.0)
+#' @param x An R object such as a raster or a number
+#' @examples
+#'
+#' x <- 1
+#' intFun.isRaster(x)
+#' y <- raster::raster(matrix(seq(1,10), ncol = 2))
+#' intFun.isRaster(y)
+#'
+#' @keywords internal
+#' @export
+intFun.isRaster <- function(x) {
+  return((class(x) == "RasterLayer" || class(x) == "RasterBrick" ||
+            class(x) == "RasterStack"))
 }
 
 #-------------------------------------------------------------------------------

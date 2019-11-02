@@ -19,7 +19,6 @@ that can be used to define a color bar legend.
 \examples{
 
 library(raster)
-library(spatial.tools)
 library(classInt)
 # create a raster object
 data <- runif(100,-23,864)

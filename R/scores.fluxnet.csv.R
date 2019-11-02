@@ -1,4 +1,4 @@
-################################################################################
+################################################################################ 
 #' Scores for FLUXNET reference data in CSV format
 #' @description This function compares model output against
 #' FLUXNET measurements in CSV format. The performance of a model is
@@ -43,7 +43,7 @@
 #' the reference data
 #' (mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}; month of annual cycle maximum, \eqn{ref.max.month}),
 #' statistical metrics
-#' (bias, \eqn{bias}; root mean square error, \eqn{rmse}; time difference of the annual cycle maximum, \eqn{phase}),
+#' (bias, \eqn{bias}; centralized root mean square error, \eqn{crmse}; time difference of the annual cycle maximum, \eqn{phase}),
 #' and scores
 #' (bias score, \eqn{bias.score}; root mean square error score, \eqn{rmse.score}; inter-annual variability score \eqn{iav.score}; annual cycle score (\eqn{phase.score}).
 #'
@@ -122,18 +122,19 @@
 #' shp.filename, my.xlim, my.ylim)
 #' }
 #' @export
-scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, score.weights = c(1,
-    2, 1, 1, 1), rotate.me = TRUE, irregular = FALSE, my.projection = "+proj=longlat +ellps=WGS84", shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp",
-    package = "amber"), my.xlim = c(-180, 180), my.ylim = c(-60, 85), plot.width = 8, plot.height = 3.8, numCores = 2, outputDir = FALSE) {
-
+scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, 
+    score.weights = c(1, 2, 1, 1, 1), rotate.me = TRUE, irregular = FALSE, my.projection = "+proj=longlat +ellps=WGS84", 
+    shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber"), my.xlim = c(-180, 180), my.ylim = c(-60, 
+        85), plot.width = 8, plot.height = 3.8, numCores = 2, outputDir = FALSE) {
+    
     #---------------------------------------------------------------------------
-
+    
     # (I) Data preparation
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (1) Reproject data from an irregular to a regular grid if 'irregular=TRUE'
-
+    
     if (irregular == TRUE) {
         regular <- "+proj=longlat +ellps=WGS84"
         rotated <- my.projection
@@ -144,7 +145,7 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         variable.name <- ifelse(variable.name == "burntFractionAll", "burnt", variable.name)  # rename burntFractionAll to shorter name
         variable.name <- toupper(variable.name)  # make variable name upper-case
         ncdf4::nc_close(nc)
-
+        
         # process model data
         my.nc <- nc.mod
         nc <- ncdf4::nc_open(my.nc)
@@ -152,7 +153,7 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         lon <- ncdf4::ncvar_get(nc, "lon")
         lat <- ncdf4::ncvar_get(nc, "lat")
         time <- ncdf4::ncvar_get(nc, "time")
-        #
+        # 
         nCol <- base::length(lon[, 1])
         nRow <- base::length(lon[1, ])
         nTime <- base::length(time)
@@ -166,10 +167,10 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         end.date <- max(dates)
         start.date <- format(as.Date(start.date), "%Y-%m")
         end.date <- format(as.Date(end.date), "%Y-%m")
-
+        
         lon <- base::matrix(lon, ncol = 1)
         lat <- base::matrix(lat, ncol = 1)
-
+        
         lonLat <- base::data.frame(lon, lat)
         sp::coordinates(lonLat) <- ~lon + lat
         raster::projection(lonLat) <- regular
@@ -194,21 +195,21 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         mod <- myStack
         start.date.mod <- start.date
         end.date.mod <- end.date
-
+        
         #-----------------------------------------------------------------------
-
+        
         # Process reference data
-
+        
         #-----------------------------------------------------------------------
-
+        
         # The raw data has the row names lat, lon, time, data, siteID, IGBPcode.
-
+        
         # The desired output is a data frame with the column names:
-
+        
         # lon, lat, YYYY-01, YYYY-02, (...),
-
+        
         # where each row presents one site
-
+        
         nc <- utils::read.csv(ref.csv)
         # get time range
         dates.ref <- nc$time
@@ -217,11 +218,11 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         dates.ref <- unique(dates.ref)
         start.date.ref <- min(dates.ref)
         end.date.ref <- max(dates.ref)
-
+        
         site.id <- unique(nc$sitename)
         nSites <- length(site.id)
         allSites <- split(nc, nc$sitename)
-
+        
         # Restructure data
         cl <- parallel::makePSOCKcluster(numCores)
         doParallel::registerDoParallel(cl)
@@ -245,13 +246,13 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
             myMerge <- merge(x, y, all.x = TRUE, all.y = TRUE)
             return(myMerge)
         }
-
+        
         # merge all individual sites and sort columns by date
         ref <- Reduce(fun.merge, eachSite)
         siteID <- as.character(ref$siteID)
         lon <- ref$lon
         lat <- ref$lat
-
+        
         # reproject coordinates to rotated grid
         lon <- base::matrix(lon, ncol = 1)
         lat <- base::matrix(lat, ncol = 1)
@@ -261,22 +262,22 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         lonLat <- sp::spTransform(lonLat, sp::CRS(rotated))
         lon <- sp::coordinates(lonLat)[, 1]
         lat <- sp::coordinates(lonLat)[, 2]
-
+        
         data <- ref[4:ncol(ref)]  # data only
         data <- data[, order(names(data))]
         ref <- data.frame(siteID, lon, lat, data * unit.conv.ref)
         # make siteID to rownames
-        myRownames <- ref[,1]
-        ref <- ref[,-1] # drop siteID column
+        myRownames <- ref[, 1]
+        ref <- ref[, -1]  # drop siteID column
         rownames(ref) <- myRownames
     } else {
-
+        
         #-----------------------------------------------------------------------
-
+        
         # (2) Process data if 'irregular=FALSE'
-
+        
         #-----------------------------------------------------------------------
-
+        
         # model data
         nc <- ncdf4::nc_open(nc.mod)
         variable.name <- names(nc[["var"]])
@@ -290,17 +291,17 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         start.date.mod <- min(dates.mod)
         end.date.mod <- max(dates.mod)
         myExtent <- c(-180, 180, -90, 90)  # this can be done in a smarter way
-
+        
         # Process reference data
-
+        
         # The raw data has the row names lat, lon, time, data, siteID, IGBPcode.
-
+        
         # The desired output is a data frame with the column names:
-
+        
         # lon, lat, YYYY-01, YYYY-02, (...),
-
+        
         # where each row presents one site
-
+        
         nc <- utils::read.csv(ref.csv)
         # get time range
         dates.ref <- nc$time
@@ -309,11 +310,11 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         dates.ref <- unique(dates.ref)
         start.date.ref <- min(dates.ref)
         end.date.ref <- max(dates.ref)
-
+        
         site.id <- unique(nc$sitename)
         nSites <- length(site.id)
         allSites <- split(nc, nc$sitename)
-
+        
         # Restructure data
         cl <- parallel::makePSOCKcluster(numCores)
         doParallel::registerDoParallel(cl)
@@ -337,7 +338,7 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
             myMerge <- merge(x, y, all.x = TRUE, all.y = TRUE)
             return(myMerge)
         }
-
+        
         # merge all individual sites and sort columns by date
         ref <- Reduce(fun.merge, eachSite)
         siteID <- as.character(ref$siteID)
@@ -347,18 +348,19 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         data <- data[, order(names(data))]
         ref <- data.frame(siteID, lon, lat, data * unit.conv.ref)
         # make siteID to rownames
-        myRownames <- ref[,1]
-        ref <- ref[,-1] # drop siteID column
+        myRownames <- ref[, 1]
+        ref <- ref[, -1]  # drop siteID column
         rownames(ref) <- myRownames
     }
-
+    
     #---------------------------------------------------------------------------
-
+    
     # find common time period
     start.date <- max(start.date.mod, start.date.ref)
     end.date <- min(end.date.mod, end.date.ref)
     # subset common time period for model data
-    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= end.date)]]
+    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= 
+        end.date)]]
     # subset common time period for reference data get a sequence of common dates
     dates <- seq(from = as.Date(paste(start.date, "15", sep = "-")), to = as.Date(paste(end.date, "15", sep = "-")), by = "month")
     dates <- format(as.Date(dates), "%Y-%m")
@@ -369,19 +371,19 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     dates.ref <- data.frame(index, dates.ref)
     colnames(dates.ref) <- c("index", "dates")
     ## merge common dates and reference dates
-
+    
     # If the time covered by the reference data exceeds the time covered by the
-
+    
     # model data, then the reference data set will be subset using the index
-
+    
     column.id <- merge(dates.ref, common.dates, by = "dates")
     column.id <- column.id$index
     ref <- data.frame(ref[2 + column.id])  # 2+ because column 1 and 2 are are lon and lat
     colnames(ref) <- c(dates)
     ref <- intFun.site.points(lon, lat, ref)
-
+    
     # compute statistics for each site
-
+    
     # extract model data for each site
     if (rotate.me == TRUE) {
         mod <- raster::rotate(mod)
@@ -400,17 +402,17 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     meta.data.ref <- paste(variable.name, ref.id, "from", start.date, "to", end.date, sep = "_")
     meta.data.com <- paste(variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date, sep = "_")
     #---------------------------------------------------------------------------
-
+    
     # (II) Statistical analysis
-
+    
     #---------------------------------------------------------------------------
-
+    
     # The time period of the reference data varies among sites.
-
+    
     # Some sites are located in the model ocean.
-
+    
     # Exclude data that do not have a corresponding data set in mod or ref.
-
+    
     mask.mod <- (mod - mod + 1)
     mask.ref <- (ref - ref + 1)
     mask <- mask.mod * mask.ref
@@ -423,11 +425,11 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     # transpose data, where rows are dates and columns are sites this is necessary for using mapply below
     mod <- data.frame(t(mod))
     ref <- data.frame(t(ref))
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (1) bias
-
+    
     #---------------------------------------------------------------------------
     mod.mean <- apply(mod, 2, mean, na.rm = TRUE)  # time mean
     ref.mean <- apply(ref, 2, mean, na.rm = TRUE)  # time mean
@@ -447,11 +449,11 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     bias.scalar <- mean(bias, na.rm = TRUE)  # global mean value
     ref.sd.scalar <- mean(ref.sd, na.rm = TRUE)
     epsilon_bias.scalar <- mean(epsilon_bias, na.rm = TRUE)
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (2) root mean square error (rmse)
-
+    
     #---------------------------------------------------------------------------
     rmse <- mapply(intFun.rmse, mod, ref)  # compute rmse
     mod.anom <- data.frame(apply(mod, 2, intFun.anom))  # compute anomalies
@@ -505,23 +507,24 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     phase.scalar <- mean(phase, na.rm = TRUE)  # global mean value
     mod.max.month.scalar <- mean(mod.max.month[, 1], na.rm = TRUE)  # global mean value
     ref.max.month.scalar <- mean(ref.max.month[, 1], na.rm = TRUE)  # global mean value
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (4) interannual variability
-
+    
     #---------------------------------------------------------------------------
-
-    # This approach assumes that all data start in Jan all months after the last Dec will be dropped if data does not end in Dec
+    
+    # This approach assumes that all data start in Jan all months after the last Dec will be dropped if data does not end in
+    # Dec
     mod.anom <- intFun.anom.mly(mod, mod.clim.mly.mm)
     ref.anom <- intFun.anom.mly(ref, ref.clim.mly.mm)
     mod.iav <- apply(mod.anom, 2, intFun.iav)
     ref.iav <- apply(ref.anom, 2, intFun.iav)
-
+    
     # set values close to zero to NA
     ref.iav.na <- ref.iav
     ref.iav.na[ref.iav.na < 10^(-5)] <- NA
-
+    
     epsilon_iav <- abs((mod.iav - ref.iav))/ref.iav.na  # I changed Eq. 26 so that epsilon_iav > =  0
     iav.score <- exp(-epsilon_iav)  # iav score as a function of space
     S_iav_not.weighted <- mean(iav.score, na.rm = TRUE)  # scalar score (not weighted)
@@ -533,13 +536,13 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     mod.iav.scalar <- mean(mod.iav, na.rm = TRUE)  # global mean value
     ref.iav.scalar <- mean(ref.iav, na.rm = TRUE)  # global mean value
     epsilon_iav.scalar <- mean(epsilon_iav, na.rm = TRUE)  # global mean value
-
+    
     #---------------------------------------------------------------------------
-
+    
     # (5) dist
-
+    
     #---------------------------------------------------------------------------
-
+    
     mod.sigma.scalar <- sd(mod.mean, na.rm = TRUE)  # standard deviation of period mean data
     ref.sigma.scalar <- sd(ref.mean, na.rm = TRUE)  # standard deviation of period mean data
     sigma <- mod.sigma.scalar/ref.sigma.scalar
@@ -548,13 +551,13 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     reg <- stats::lm(y ~ x)
     R <- sqrt(summary(reg)$r.squared)
     S_dist <- 2 * (1 + R)/(sigma + 1/sigma)^2  # weighting does not apply
-
+    
     #---------------------------------------------------------------------------
-
+    
     # Scores
-
+    
     #---------------------------------------------------------------------------
-
+    
     w.bias <- score.weights[1]
     w.rmse <- score.weights[2]
     w.phase <- score.weights[3]
@@ -566,8 +569,8 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     S_phase <- S_phase_not.weighted
     S_iav <- S_iav_not.weighted
     # weight importance of statisitcal metrics and compute overall score
-    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias + w.rmse + w.phase +
-        w.iav + w.dist)
+    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias + w.rmse + 
+        w.phase + w.iav + w.dist)
     scores <- data.frame(variable.name, ref.id, S_bias, S_rmse, S_phase, S_iav, S_dist, S_overall)
     scores_not.weighted <- scores
     # weighted (except for S_dist)
@@ -575,11 +578,11 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     S_rmse <- S_rmse_weighted
     S_phase <- S_phase_weighted
     S_iav <- S_iav_weighted
-    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias + w.rmse + w.phase +
-        w.iav + w.dist)
+    S_overall <- (w.bias * S_bias + w.rmse * S_rmse + w.phase * S_phase + w.iav * S_iav + w.dist * S_dist)/(w.bias + w.rmse + 
+        w.phase + w.iav + w.dist)
     scores <- data.frame(variable.name, ref.id, S_bias, S_rmse, S_phase, S_iav, S_dist, S_overall)
     scores_weighted <- scores
-    #
+    # 
     scores <- rbind(scores_not.weighted, scores_weighted)
     rownames(scores) <- c("not.weighted", "weighted")
     if (outputDir != FALSE) {
@@ -594,17 +597,17 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         utils::write.table(all.score.values, paste(outputDir, "/", "allscorevalues", "-", variable.name, "-", ref.id, sep = ""))
     }
     # selected score inputs
-    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar, bias.scalar, ref.sd.scalar,
-        epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar, epsilon_rmse.scalar, S_rmse_not.weighted,
-        mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted, mod.iav.scalar, ref.iav.scalar, epsilon_iav.scalar,
-        S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar, sigma, R, S_dist)
+    scoreinputs <- data.frame(long.name, variable.name, ref.id, variable.unit, mod.mean.scalar, ref.mean.scalar, bias.scalar, 
+        ref.sd.scalar, epsilon_bias.scalar, S_bias_not.weighted, rmse.scalar, crmse.scalar, ref.sd.scalar, epsilon_rmse.scalar, 
+        S_rmse_not.weighted, mod.max.month.scalar, ref.max.month.scalar, phase.scalar, S_phase_not.weighted, mod.iav.scalar, 
+        ref.iav.scalar, epsilon_iav.scalar, S_iav_not.weighted, mod.sigma.scalar, ref.sigma.scalar, sigma, R, S_dist)
     if (outputDir != FALSE) {
         utils::write.table(scoreinputs, paste(outputDir, "/", "scoreinputs", "_", meta.data.com, sep = ""))
     }
     # min.max.int
     mmi.bias <- intFun.min.max.int.bias(bias)
     mmi.bias.score <- c(0, 1, 0.1)
-    mmi.rmse <- intFun.min.max.int(rmse)
+    mmi.crmse <- intFun.min.max.int(crmse)
     mmi.rmse.score <- c(0, 1, 0.1)
     mmi.phase <- c(0, 6, 1)
     mmi.phase.score <- c(0, 1, 0.1)
@@ -613,21 +616,21 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     mmi.mean <- intFun.min.max.int.mod.ref(mod.mean, ref.mean)
     mmi.max.month <- c(1, 12, 1)
     mmi.iav <- intFun.min.max.int.mod.ref(mod.iav, ref.iav)
-
+    
     #---------------------------------------------------------------------------
-
+    
     # Add metadata:
-
+    
     # 1. figure title (e.g. Mean_nee_ModID_123_from_1982-01_to_2008-12)
-
+    
     # 2. min, max, interval used in legend (e.g. 0, 1, 0.1)
-
+    
     # 3. legend bar text (e.g. 'score (-)')
     attr(mod.mean, "metadata") <- list(paste("Mean", meta.data.mod, sep = "_"), mmi.mean, variable.unit)
     attr(ref.mean, "metadata") <- list(paste("Mean", meta.data.ref, sep = "_"), mmi.mean, variable.unit)
     attr(bias, "metadata") <- list(paste("Bias", meta.data.com, sep = "_"), mmi.bias, variable.unit)
     attr(bias.score, "metadata") <- list(paste("Bias_score", meta.data.com, sep = "_"), mmi.bias.score, "score (-)")
-    attr(rmse, "metadata") <- list(paste("RMSE", meta.data.com, sep = "_"), mmi.rmse, variable.unit)
+    attr(crmse, "metadata") <- list(paste("CRMSE", meta.data.com, sep = "_"), mmi.crmse, variable.unit)
     attr(rmse.score, "metadata") <- list(paste("RMSE_score", meta.data.com, sep = "_"), mmi.rmse.score, "score (-)")
     attr(mod.max.month, "metadata") <- list(paste("Month_with_max", meta.data.mod, sep = "_"), mmi.max.month, "month")
     attr(ref.max.month, "metadata") <- list(paste("Month_with_max", meta.data.ref, sep = "_"), mmi.max.month, "month")
@@ -637,15 +640,15 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
     attr(ref.iav, "metadata") <- list(paste("IAV", meta.data.ref, sep = "_"), mmi.iav, variable.unit)
     attr(iav.score, "metadata") <- list(paste("IAV_score", meta.data.com, sep = "_"), mmi.iav.score, "score (-)")
     # write data to file
-    stat.metric <- data.frame(lon, lat, mod.mean, ref.mean, bias, bias.score, rmse, rmse.score, mod.max.month, ref.max.month, phase,
-        phase.score, mod.iav, ref.iav, iav.score)
-    colnames(stat.metric) <- c("lon", "lat", "mod.mean", "ref.mean", "bias", "bias.score", "rmse", "rmse.score", "mod.max.month",
+    stat.metric <- data.frame(lon, lat, mod.mean, ref.mean, bias, bias.score, crmse, rmse.score, mod.max.month, ref.max.month, 
+        phase, phase.score, mod.iav, ref.iav, iav.score)
+    colnames(stat.metric) <- c("lon", "lat", "mod.mean", "ref.mean", "bias", "bias.score", "crmse", "rmse.score", "mod.max.month", 
         "ref.max.month", "phase", "phase.score", "mod.iav", "ref.iav", "iav.score")
     my.filename <- paste(variable.name, "FLUXNET", sep = "_")
     if (outputDir != FALSE) {
         utils::write.table(stat.metric, paste(outputDir, my.filename, sep = "/"))
     }
-
+    
     land <- intFun.coast(my.xlim, my.ylim, my.projection, shp.filename)  # reproject coastline
     # loop through all layers of the raster stack
     lon2 <- stat.metric$lon
@@ -678,32 +681,32 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         my.col <- viridis::viridis(n = length(my.breaks) - 1, direction = -1)
         my.col.bias <- scico::scico(n = length(my.breaks) - 1, palette = "vik")
         my.col.phase <- grDevices::rainbow(n = length(my.breaks) - 1)
-        if (i == 5)
+        if (i == 5) 
             {
                 my.col <- my.col.bias
             }  # divergent color scheme for bias plots
-        if (i == 9)
+        if (i == 9) 
             {
                 my.col <- my.col.phase
             }  # circular color scheme for phase
-        if (i == 10)
+        if (i == 10) 
             {
                 my.col <- my.col.phase
             }  # circular color scheme for phase
-        if (i == 11)
+        if (i == 11) 
             {
                 my.col <- my.col.phase
             }  # circular color scheme for phase
-
+        
         my.axis.args <- list(at = my.labels, labels = my.labels, cex.axis = 1)
         my.legend.args <- list(text = legend.bar.text, side = 2, font = 1, line = 1, cex = 1)
-
+        
         colors <- cut(values$values, breaks = my.breaks, labels = my.col, include.lowest = TRUE)
         colors <- toString(colors)
         colors <- unlist(strsplit(colors, split = ", "))
-
+        
         # plot
-        oldpar <- graphics::par(mfrow = c(1,2))
+        oldpar <- graphics::par(mfrow = c(1, 2))
         on.exit(graphics::par(oldpar))
         my.plotname <- paste(my.filename, cname, sep = "_")
         my.plotname <- gsub("_", "-", my.plotname)
@@ -722,7 +725,7 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
         dummy <- matrix(dummy, nrow = 180)
         dummy <- raster::raster(dummy)
         raster::extent(dummy) <- myExtent
-        raster::plot(dummy, col = NA, xlim = my.xlim, ylim = my.ylim, main = paste(long.name, my.title, sep = "\n"), axes = FALSE,
+        raster::plot(dummy, col = NA, xlim = my.xlim, ylim = my.ylim, main = paste(long.name, my.title, sep = "\n"), axes = FALSE, 
             legend = FALSE)
         raster::plot(land, col = "grey", border = NA, add = TRUE)
         graphics::points(data, pch = 16, col = colors)
@@ -730,13 +733,13 @@ scores.fluxnet.csv <- function(long.name, nc.mod, ref.csv, mod.id, ref.id, unit.
             graphics::axis(1, labels = TRUE, tcl = 0.3)
             graphics::axis(2, labels = TRUE, tcl = 0.3, las = 2)
         }
-        plot(dummy, legend.only = TRUE, col = my.col, breaks = my.breaks, axis.args = my.axis.args, legend.args = my.legend.args,
+        plot(dummy, legend.only = TRUE, col = my.col, breaks = my.breaks, axis.args = my.axis.args, legend.args = my.legend.args, 
             legend.width = 1.5, legend.shrink = 1, font = 1)
         if (outputDir != FALSE) {
             grDevices::dev.off()
         }
     }
-
+    
 }
 utils::globalVariables("%dopar%")
 

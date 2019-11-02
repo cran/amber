@@ -21,7 +21,6 @@ which is an advantage for plotting data with extremely small numerical values.
 \examples{
 
 library(raster)
-library(spatial.tools)
 library(classInt)
 # create a raster object
 data <- runif(100,0,10^(-5))

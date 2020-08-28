@@ -1,0 +1,324 @@
+# notes:
+# color schemes: https://www.graphviz.org/doc/info/colors.html#brewer
+digraph boxes_and_circles {
+
+  # a 'graph' statement
+  graph [fontname = Helvetica, compound=true, layout = dot, rankdir=LR]
+#-------------------------------------------------------------------------------
+# input data
+#-------------------------------------------------------------------------------
+ node [shape = box, style = filled, colorscheme = ylgnbu3, fillcolor = 1, fontname = Helvetica, width = 1]
+ 
+ modelData[label = "model data (grid)"]
+ modelDataSite[label = "model data (site)"]
+ refData[label = "reference data (grid)"]
+ refDataSite[label = "reference data (site)"]
+ ncbasins[label = "basins.nc"]
+
+#-------------------------------------------------------------------------------
+# AMBER functions
+#-------------------------------------------------------------------------------
+node [shape = box, style = filled, colorscheme = ylgnbu3, fillcolor = 2, fontname = Helvetica, width = 1]
+#-------------------------------------------------------------------------------
+scoresgridtime[label = "scores.grid.time()"]
+scoresgridnotime[label = "scores.grid.notime()"]
+scoresrunoff[label = "scores.runoff()"]
+plotGrid[label = "plotGrid()"]
+plotHovmoeller[label = "plotHovmoeller()"]
+zonalMean[label = "zonalMean()"]
+seasonalCycle[label = "seasonalCycle()"]
+scoresfluxnetcsv[label = "scores.fluxnet.csv()"]
+scoresfluxnetsite[label = "scores.fluxnet.site()"]
+scoresitenotime[label = "scores.site.notime()"]
+plotFluxnetStats[label = "plotFluxnetStats()"]
+zonalMeanStatsFunction[label = "zonalMeanStats()"]
+scorestables[label = "scores.tables()"]
+globalSumsTableFunction[label = "globalSumsTable()"]
+metricscompare[label = "metrics.compare()"]
+plotBars[label = "plotBars()"]
+plotZonalMeans[label = "plotZonalMeans()"]
+plotZonalMeanStatsFunction[label = "plotZonalMeanStats()"]
+scorescompareensemble[label = "scores.compare.ensemble()"]
+scorescomparebenchmarks[label = "scores.compare.benchmarks()"]
+plotEnsembleMean[label = "plotEnsembleMean()"]
+plotEnsembleHovmoeller[label = "plotEnsembleHovmoeller()"]
+scorescompare[label = "scores.compare()"]
+correlationMatrix[label = "correlationMatrix()"]
+correlationMatrixFluxnet[label = "correlationMatrixFluxnet()"]
+correlationMatrixDiff[label = "correlationMatrixDiff()"]
+plotNc[label = "plotNc()"]
+
+#-------------------------------------------------------------------------------
+# ouput names
+#-------------------------------------------------------------------------------
+node [shape = box, style = filled, colorscheme = ylgnbu3, fillcolor = 3, fontname = Helvetica, width = 1]
+#-------------------------------------------------------------------------------
+# scores.grid.time()
+VAR_REF_METRIC_nc[label = "VAR-REF-METRIC.nc"] 
+scoreinputs[label = "scoreinputs_INFO"]
+scorevalues[label = "scorevalues_INFO"]
+allscorevalues[label = "allscorevalues-VAR-REF"]
+plot_me[label = "plot.me (R object)"] 
+
+# plotGrid()
+VAR_REF_METRIC_pdf[label = "VAR-REF-METRIC.pdf"] 
+
+# plotHovmoeller()
+VAR_REF_METRIC_clim_mly_nc[label = "VAR-REF-METRIC-clim-mly.nc"] 
+VAR_REF_METRIC_clim_mly_pdf[label = "VAR-REF-METRIC-clim-mly.pdf"] 
+
+# zonalMean()
+VAR_REF_zonalMean_pdf[label = "VAR-REF-zonalMean.pdf"]
+
+# seasonalCycle()
+VAR_REF_seasonalCycle_METRIC_pdf[label = "VAR-REF-seasonalCycle-METRIC.pdf"]
+
+# scoresfluxnetcsv()
+VAR_REF[label = "VAR-REF"]
+
+# plotFluxnetStats()
+REF_scatterplot_METRIC_pdf[label = "REF_scatterplot_METRIC.pdf"]
+REF_histogram_METRIC_pdf[label = "REF_histogram_METRIC.pdf"]
+
+# zonalMeanStats()
+zonalMeanStats
+zonalMeanStatsUnits
+
+# scores.tables()
+score_INFO_tex[label = "score_INFO.tex"]
+score_INFO_pdf[label = "score_INFO.pdf"]
+score_INFO_nc[label = "score_INFO.nc"]
+scoreinputs_SCORE_tex[label = "scoreinputs.SCORE.tex"]
+metricsTable[label = "metricsTable"]
+
+# globalSumsTable()
+globalSumsTable
+globalSumsTable_tex[label = "globalSumsTable.tex"]
+
+# metrics.compare()
+metrics_compare_pdf[label = "metrics_compare.pdf"]
+
+# plotBars()
+barplotEnergyFluxes_pdf[label = "barplotEnergyFluxes.pdf"]
+FractionbarplotEnergyFluxes_pdf[label = "FractionbarplotEnergyFluxes.pdf"]
+
+# plotZonalMeans()
+zonalMean_pdf[label = "zonalMean.pdf"]
+
+# plotZonalMeanStats()
+zonalMeanStats_VAR_REF_pdf[label = "zonalMeanStats-VAR-REF.pdf"]
+
+# scores.compare.ensemble()
+scorescompareensemble_pdf[label = "scores_compare_ensemble.pdf"]
+
+# scores.compare.benchmarks()
+scores_compare_benchmarks_pdf[label = "scores_compare_benchmarks.pdf"]
+
+# plotEnsembleMean()
+VAR_METRIC_ensemble_mean_pdf[label = "VAR_METRIC_ensemble_mean.pdf"]
+
+# plotEnsembleHovmoeller()
+VAR_EnsembleHovmoeller_pdf[label = "VAR_EnsembleHovmoeller.pdf"]
+
+# scores.compare()
+scores_compare_pdf[label = "scores_compare.pdf"]
+
+# correlationMatrix()
+correlationMatrix_METRIC_pdf[label = "correlationMatrix-METRIC.pdf"]
+
+# correlationMatrixFluxnet()
+correlationMatrixFluxnet_METRIC_pdf[label = "correlationMatrixFluxnet-METRIC.pdf"]
+
+# correlationMatrixDiff()
+cm[label = "CM (R object)"]
+correlationMatrixDiff_pdf[label = "correlationMatrixDiff.pdf"]
+
+# plotNc()
+VAR_MOD_METRIC_pdf[label = "VAR_MOD_METRIC.pdf"]
+
+#-------------------------------------------------------------------------------
+# Relations
+#-------------------------------------------------------------------------------
+edge[fontname = Helvetica]
+#-------------------------------------------------------------------------------
+# scores.grid.time()
+modelData->scoresgridtime
+refData->scoresgridtime
+scoresgridtime->VAR_REF_METRIC_nc
+scoresgridtime->scoreinputs
+scoresgridtime->scorevalues
+scoresgridtime->allscorevalues
+scoresgridtime->plot_me
+
+# scores.grid.notime()
+modelData->scoresgridnotime
+refData->scoresgridnotime
+scoresgridnotime->VAR_REF_METRIC_nc
+scoresgridnotime->scoreinputs
+scoresgridnotime->scorevalues
+scoresgridnotime->allscorevalues
+scoresgridnotime->plot_me
+
+# scores.runoff()
+modelData->scoresrunoff
+refData->scoresrunoff
+ncbasins->scoresrunoff
+scoresrunoff->VAR_REF_METRIC_pdf
+scoresrunoff->VAR_REF
+scoresrunoff->scoreinputs
+scoresrunoff->scorevalues
+scoresrunoff->allscorevalues
+
+# plotGrid()
+plot_me->plotGrid
+plotGrid->VAR_REF_METRIC_pdf
+
+# plotHovmoeller()
+plot_me->plotHovmoeller
+plotHovmoeller->VAR_REF_METRIC_clim_mly_nc
+plotHovmoeller->VAR_REF_METRIC_clim_mly_pdf
+
+# zonalMean()
+modelData->zonalMean
+refData->zonalMean
+zonalMean->VAR_REF_zonalMean_pdf
+
+# seasonalCycle()
+modelData->seasonalCycle
+refData->seasonalCycle
+seasonalCycle->VAR_REF_seasonalCycle_METRIC_pdf
+
+# scores.fluxnet.csv()
+modelData->scoresfluxnetcsv
+refDataSite->scoresfluxnetcsv
+scoresfluxnetcsv->scoreinputs
+scoresfluxnetcsv->scorevalues
+scoresfluxnetcsv->allscorevalues
+scoresfluxnetcsv->VAR_REF_METRIC_pdf
+scoresfluxnetcsv->VAR_REF
+
+# scores.fluxnet.site()
+modelDataSite->scoresfluxnetsite
+refDataSite->scoresfluxnetsite
+scoresfluxnetsite->scoreinputs
+scoresfluxnetsite->scorevalues
+scoresfluxnetsite->allscorevalues
+scoresfluxnetsite->VAR_REF_METRIC_pdf
+scoresfluxnetsite->VAR_REF
+
+# scores.site.notime()
+modelData->scoresitenotime
+refDataSite->scoresitenotime
+scoresitenotime->scoreinputs
+scoresitenotime->scorevalues
+scoresitenotime->allscorevalues
+scoresitenotime->VAR_REF_METRIC_pdf
+scoresitenotime->VAR_REF
+
+# plotFluxnetStats()
+VAR_REF->plotFluxnetStats
+plotFluxnetStats->REF_scatterplot_METRIC_pdf
+plotFluxnetStats->REF_histogram_METRIC_pdf
+
+# zonalMeanStats()
+VAR_REF_METRIC_nc->zonalMeanStatsFunction
+zonalMeanStatsFunction->zonalMeanStats
+zonalMeanStatsFunction->zonalMeanStatsUnits
+
+# scores.tables()
+scoreinputs->scorestables
+scorevalues->scorestables
+scorestables->score_INFO_tex
+scorestables->score_INFO_pdf
+scorestables->score_INFO_nc
+scorestables->scoreinputs_SCORE_tex
+scorestables->metricsTable
+
+# globalSumsTable()
+VAR_REF_METRIC_nc->globalSumsTableFunction
+globalSumsTableFunction->globalSumsTable
+globalSumsTableFunction->globalSumsTable_tex
+
+# metrics.compare()
+scoreinputs->metricscompare
+metricscompare->metrics_compare_pdf
+
+# plotBars()
+metricsTable->plotBars
+plotBars->barplotEnergyFluxes_pdf
+plotBars->FractionbarplotEnergyFluxes_pdf
+
+# plotZonalMeans()
+zonalMeanStats->plotZonalMeans
+zonalMeanStatsUnits->plotZonalMeans
+plotZonalMeans->zonalMean_pdf
+
+# plotZonalMeanStats()
+zonalMeanStats->plotZonalMeanStatsFunction
+zonalMeanStatsUnits->plotZonalMeanStatsFunction
+plotZonalMeanStatsFunction->zonalMeanStats_VAR_REF_pdf
+
+# scores.compare.ensemble()
+scorevalues->scorescompareensemble
+scorescompareensemble->scorescompareensemble_pdf
+
+# scores.compare.benchmarks()
+scorevalues->scorescomparebenchmarks
+scorescomparebenchmarks->scores_compare_benchmarks_pdf
+
+# plotEnsembleMean()
+VAR_REF_METRIC_nc->plotEnsembleMean
+plotEnsembleMean->VAR_METRIC_ensemble_mean_pdf
+
+# plotEnsembleHovmoeller()
+VAR_REF_METRIC_clim_mly_nc->plotEnsembleHovmoeller
+plotEnsembleHovmoeller->VAR_EnsembleHovmoeller_pdf
+
+# scores.compare()
+allscorevalues->scorescompare
+scorescompare->scores_compare_pdf
+
+# correlationMatrix()
+VAR_REF_METRIC_nc->correlationMatrix
+correlationMatrix->cm
+correlationMatrix->correlationMatrix_METRIC_pdf
+
+# correlationMatrixFluxnet()
+VAR_REF->correlationMatrixFluxnet
+correlationMatrixFluxnet->correlationMatrixFluxnet_METRIC_pdf
+
+# correlationMatrixDiff()
+cm->correlationMatrixDiff
+correlationMatrixDiff->correlationMatrixDiff_pdf
+
+# plotNc()
+modelData->plotNc
+plotNc->VAR_MOD_METRIC_pdf
+#-------------------------------------------------------------------------------
+
+# ranking
+
+# inputs
+{rank=same; modelData, modelDataSite, refData, refDataSite, ncbasins}
+
+# .pdf files
+# { rank=same;VAR_REF_METRIC_pdf,VAR_REF_METRIC_clim_mly_pdf,VAR_REF_zonalMean_pdf,
+# VAR_REF_seasonalCycle_METRIC_pdf,VAR_REF_METRIC_pdf,REF_scatterplot_METRIC_pdf,
+# REF_histogram_METRIC_pdf,score_INFO_pdf,metrics_compare_pdf,barplotEnergyFluxes_pdf,
+# FractionbarplotEnergyFluxes_pdf,zonalMean_pdf,zonalMeanStats_VAR_REF_pdf,scorescompareensemble_pdf,
+# scores_compare_benchmarks_pdf,VAR_METRIC_ensemble_mean_pdf,VAR_EnsembleHovmoeller_pdf,
+# scores_compare_pdf,correlationMatrix_METRIC_pdf,correlationMatrixFluxnet_METRIC_pdf,
+# correlationMatrixDiff_pdf,VAR_MOD_METRIC_pdf}
+
+# .nc files
+# {rank=same;VAR_REF_METRIC_nc, VAR_REF_METRIC_clim_mly_nc, score_INFO_nc}
+
+# .tex files
+# {rank=same;score_INFO_tex, scoreinputs_SCORE_tex, globalSumsTable_tex}
+
+# text file
+# {rank=same;scoreinputs,scorevalues,allscorevalues,plot_me,VAR_REF,zonalMeanStats, zonalMeanStatsUnits,metricsTable,globalSumsTable,cm}
+
+}
+
+

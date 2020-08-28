@@ -9,7 +9,7 @@ scores.grid.notime(long.name, nc.mod, nc.ref, mod.id, ref.id,
   1, 1), outlier.factor = 1000, irregular = FALSE,
   my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.",
   numCores = 2, period = c("1980-01", "2017-12"), timeInt = "month",
-  outputDir = FALSE)
+  outputDir = FALSE, variable.name = FALSE)
 }
 \arguments{
 \item{long.name}{A string that gives the full name of the variable, e.g. 'Gross primary productivity'}
@@ -44,11 +44,13 @@ exceed the interquartile range multiplied by the outlier factor defined here.}
 
 \item{numCores}{An integer that defines the number of cores, e.g. 2}
 
-\item{period}{An R obect that gives the period over which to average the model data, e.g. c('1980-01', '2017-12')}
+\item{period}{An R object that gives the period over which to average the model data, e.g. c('1980-01', '2017-12')}
 
 \item{timeInt}{A string that gives the time interval of the model data, e.g. 'month' or 'year'}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{variable.name}{A string with the variable name, e.g. 'GPP'. If FALSE, the variable name stored in the NetCDF file will be used instead. Default is FALSE.}
 }
 \value{
 (1) A list that contains three elements. The first element is a
@@ -70,28 +72,38 @@ This function compares model output against remote-sensing
 based reference data that do not vary in time. The performance of a model is
 expressed through a score that ranges from zero to one, where increasing values
 imply better performance.
-Contrary to the function \link{scores.grid.time}, only one score is computed
-(spatial distribution score, \eqn{S_{dist}}) since the reference data does
+Contrary to the function \link{scores.grid.time}, only two scores are computed
+(bias score \eqn{S_{bias}} and spatial distribution score, \eqn{S_{dist}}) since the reference data do
+not vary with time. Contrary to \link{scores.grid.time}, the bias is relative to the absolute reference mean
+value rather than the reference standard deviation. Again, this is because the reference data do
 not vary with time:
 
-\eqn{\sigma=\sigma_{\overline{v_{mod}}}/\sigma_{\overline{v_{ref}}}}
+\eqn{(i) \ bias(\lambda, \phi)=\overline{v_{mod}}(\lambda, \phi)-\overline{v_{ref}}(\lambda, \phi)}
 
-\eqn{S_{dist}=2(1+R)/(\sigma+\frac{1}{\sigma})^{2}}
+\eqn{(ii) \ \varepsilon_{bias}=|bias(\lambda, \phi)|/|\overline{v_{ref}}(\lambda, \phi)|}
 
-where \eqn{\sigma_{\overline{v_{mod}}}} and \eqn{\sigma_{\overline{v_{ref}}}} are the
-standard deviation of the time mean values from the model and reference data,
-and \eqn{R} is the spatial correlation coefficient of
-\eqn{\overline{v_{ref}}(\lambda, \phi)} and
-\eqn{\overline{v_{mod}}(\lambda, \phi)}.
+\eqn{(iii) \ s_{bias}(\lambda, \phi)=e^{-\varepsilon_{bias}(\lambda, \phi)}}
+
+\eqn{(iv) \ S_{bias}=\overline{\overline{s_{bias}}}}
 }
 \examples{
-
 library(amber)
+library(classInt)
 library(doParallel)
 library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
 library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 # (1) Global plots on a regular grid
 long.name <- 'Soil Carbon'
@@ -109,20 +121,6 @@ unit.conv.mod, unit.conv.ref, variable.unit)
 plotGrid(long.name, plot.me)
 
 \donttest{
-# Additional parameters:
-score.weights <- c(1,2,1,1,1) # score weights of S_bias, S_rmse, S_phase, S_iav, S_dist
-outlier.factor <- 1000
-irregular <- FALSE
-my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-numCores <- 2
-period <- c('1980-01', '2017-12') # period over which to average the model data
-
-plot.me <- scores.grid.notime(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-unit.conv.ref, variable.unit, score.weights, outlier.factor, irregular, my.projection,
-numCores, period)
-plotGrid(long.name, plot.me)
-
-
 # (2) Regional plots on a rotated grid
 long.name <- 'Soil Carbon'
 nc.mod <- system.file('extdata/modelRotated', 'cSoil_monthly.nc', package = 'amber')
@@ -146,8 +144,9 @@ numCores, period)
 # Plot results:
 irregular <- TRUE # data is on an irregular grid
 my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
- package = 'amber')
+# shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
+#  package = 'amber')
+shp.filename <- system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber")
 my.xlim <- c(-171, 0) # longitude range that you wish to plot
 my.ylim <- c(32, 78) # latitude range that you wish to plot
 plot.width <- 7 # plot width
@@ -155,5 +154,5 @@ plot.height <- 3.8 # plot height
 
 plotGrid(long.name, plot.me, irregular, my.projection,
 shp.filename, my.xlim, my.ylim, plot.width, plot.height)
-}
+} #donttest
 }

@@ -1,5 +1,5 @@
 ---
-title: "The Automated Model Benchmarking (AMBER) package"
+title: "The Automated Model Benchmarking R package (AMBER)"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{amber-vignette}
@@ -19,16 +19,18 @@ knitr::opts_chunk$set(
 library(amber)
 ```
 ## Context
-The Canadian Land Surface Scheme Including Biogeochemical Cycles (CLASSIC) is the land surface component of the Canadian Earth System Model (CanESM) [@Melton2016-jb]. CLASSIC is a process-based ecosystem and land surface model designed for use at scales ranging from site-level to global. Environment and Climate Change Canada develops and maintains CLASSIC as an open-source community model. CLASSIC is the successor to its two component models: CLASS and CTEM.
+The Canadian Land Surface Scheme Including Biogeochemical Cycles (CLASSIC) is the land surface component of the Canadian Earth System Model (CanESM) [@Melton2020-ke]. CLASSIC is a process-based ecosystem and land surface model designed for use at scales ranging from site-level to global. Environment and Climate Change Canada develops and maintains CLASSIC as an open-source community model. CLASSIC is the successor to its two component models: CLASS and CTEM.
 
-The Automated Model Benchmarking (AMBER) package evaluates the ability of CLASSIC to reproduce land surface processes by comparing model outputs against quasi-observational data sets derived from remote sensing products, eddy covariance flux tower measurements, and stream flow measurements. To summarize model performance across different statistical metrics AMBER employs a skill score system that was originally developed by the International Land Model Benchmarking (ILAMB) framework [@Collier-th]. The amber package was created to tailor the ILAMB skill score approach for CLASSIC model outputs.
+The Automated Model Benchmarking R package (AMBER) evaluates the ability of CLASSIC to reproduce land surface processes by comparing model outputs against observation-based gridded products, such as satellite imagery, and in situ observations such as eddy covariance flux tower measurements or stream flow records. To summarize model performance across different statistical metrics AMBER employs a skill score system that was originally developed by the International Land Model Benchmarking (ILAMB) framework [@Collier2018-th]. AMBER was created to tailor the ILAMB skill score approach for CLASSIC model outputs. While AMBER was tested for CLASSIC only it may also work for other models. Figures produced with AMBER can be accessed [here](https://cseiler.shinyapps.io/ShinyAmber/).
 
 ## Functions
-The functions provided by the amber package can be grouped into two categories:
+The functions provided by AMBER can be grouped into three categories:
 
-  * Functions that compute skill scores. This includes all functions with the prefix *scores*. Different functions apply to different reference data, such as spatially gridded data (*scores.grid.time*), eddy covariance flux tower measurements (*scores.fluxnet.csv*), or stream flow measurements (*scores.runoff*).
-  
-  * Functions for data visualization. This includes *plotGrid*, *plotNc*, *plotNcIrreg*, *seasonalCycle*, *seasonalCycleIrreg*, *zonalMean*, and *zonalMeanIrreg*. The suffix *Irreg* indicates that this function may be applied to data that is on an irregular grid. In the case of CLASSIC, this applies to high-resolution simulations that are conducted for the Canadian domain.
+  * Functions that compute skill scores and other metrics for a single variable. This includes: *scores.fluxnet.csv*, *scores.fluxnet.nc*, *scores.fluxnet.site*, *scores.functional.response*, *scores.grid.notime*, *scores.grid.time*, *scores.runoff*, and*scores.site.notime*.
+
+  * Functions that visualize model output for a single variable. This includes the functions *plotEnsembleHovmoeller*, *plotEnsembleMean*, *plotGrid*, *plotHovmoeller*, *plotNcIrreg*, *plotNc*, *plotZonalMeans*, *plotZonalMeanStats*, *seasonalCycleIrreg*, *seasonalCycle*, *zonalMeanIrreg*, *zonalMean*, and *zonalMeanStats*. The suffix *Irreg* indicates that this function may be applied to data that is on an irregular grid.
+
+  * Functions that visualize summary statistics across multiple variables. This includes: *scores.compare.benchmarks*, *scores.compare.ensemble*, *scores.compare*, *scores.tables*, *scores.tables.tweak*, *correlationMatrixDiff*, *correlationMatrixFluxnet*, *correlationMatrix*, *globalSumsTable*, *metrics.compare*, *plotBars*, and, *plotFluxnetStats*. The string *ensemble* implies that the function is designed to handle multiple model runs.
 
 ## Scores
 The performance of a model is expressed through scores that range from
@@ -111,30 +113,6 @@ the initial and final time step, respectively. The variables $c_{mod}$
 and $c_{ref}$ refer to the monthly mean annual cycle of the model and
 reference data, respectively.
 
-## Reference data
-AMBER has been tested with reference data from ILAMB.
-The respective data consists of remote sensing-based products, flux tower
-measurements, and stream flow measurements (Table 2). All remote-sensing
-based reference data must be spatially interpolated to the resolution grid
-of the model (2.8125$^\circ$ $\times$ 2.8125$^\circ$). Reference data
-may be obtained from ILAMB.
-
-  Data        Variables                         Period      Reference
-  ----------- --------------------------------- ----------- ----------------------
-  AVHRR       LAI                               1982-2010   @Myneni1997-lj
-  CanSISE     SNW                               1981-2010   @Mudryk2015-zo
-  CERES       ALBS, RSS, RLS, RNS               2000-2012   @Kato2013-ip
-  FLUXNET     GPP, HFLS, HFSS, NEE, RECO, RNS   1997-2014   @Pastorello2017-ym
-  GBAF        GPP, NEE, RECO, HFLS, HFSS        1982-2008   @Jung2010-vd
-  GEOCARBON   AGLBIO                            NA          @Avitabile2016-sb,
-                                                            @Santoro2015-sn
-  GFED4S      BURNT                             2001-2015   @Giglio2010-ok
-  GRDC        MRRO                              1980-2010   @Dai2002-tp
-  GWEXSRB     ALBS                              1984-2007   @Stackhouse2011-vt
-  HWSD        CSOIL                             NA          @Todd-Brown2013-ls
-
-  Table: **Table 2** Reference data
-
 ## Examples
 ### Comparing model results against gridded reference data
 ```{r, eval = FALSE}
@@ -200,6 +178,9 @@ score.weights <- c(1,2,1,1,1) # define score weights
 scores.runoff(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, unit.conv.mod,
 unit.conv.ref, variable.unit, score.weights)
 ```
+## Relations between inputs, functions, and outputs
+The Figure below visualizes the relations between AMBER inputs (yellow boxes), functions (green boxes), and outputs (blue boxes). This figure may guide the user for running the different functions in concert.
+<img src="amberFlowchart.png" width="1200">
 
 ## Acknowledgements
 The example data provided with this package includes eddy covariance data acquired and that is shared by the FLUXNET community, including these networks: AmeriFlux, AfriFlux, AsiaFlux, CarboAfrica, CarboEuropeIP, CarboItaly, CarboMont, ChinaFlux, Fluxnet-Canada, GreenGrass, ICOS, KoFlux, LBA, NECC, OzFlux-TERN, TCOS-Siberia, and USCCC. The ERA-Interim reanalysis data are provided by ECMWF and processed by LSCE. The FLUXNET eddy covariance data processing and harmonization was carried out by the European Fluxes Database Cluster, AmeriFlux Management Project, and Fluxdata project of FLUXNET, with the support of CDIAC and ICOS Ecosystem Thematic Center, and the OzFlux, ChinaFlux and AsiaFlux offices. Other example data have been provided by the International Land Model Benchmarking (ILAMB) project.

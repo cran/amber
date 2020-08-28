@@ -19,3 +19,4 @@
 "18" "RNS.CERES" "W m$^{-2}$"
 "19" "RNS.FluxCom" "W m$^{-2}$"
 "20" "RSS.CERES" "W m$^{-2}$"
+"21" "SNW.CanSISE" "m"

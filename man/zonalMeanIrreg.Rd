@@ -60,12 +60,22 @@ ranges of model and reference data. The function expects data to be on an irregu
 \donttest{
 
 library(amber)
+library(classInt)
 library(doParallel)
 library(foreach)
+library(Hmisc)
 library(latex2exp)
 library(ncdf4)
 library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Gross primary productivity'
 nc.mod <- system.file('extdata/modelRotated', 'gpp_monthly.nc', package = 'amber')
@@ -79,5 +89,5 @@ outlier.factor <- 1000
 
 zonalMeanIrreg(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
 unit.conv.ref, variable.unit, outlier.factor, numCores = 2)
-}
+} #donttest
 }

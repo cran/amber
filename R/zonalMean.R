@@ -1,7 +1,7 @@
-################################################################################ 
+################################################################################
 #' Zonal mean plots of model and reference data
-#' @description This function plots zonal mean values and corresponding inter-quartile
-#' ranges of model and reference data.
+#' @description This function plots zonal mean annual means and corresponding total
+#' range for model and reference data.
 #' @param long.name A string that gives the full name of the variable, e.g. 'Gross primary productivity'
 #' @param nc.mod A string that gives the path and name of the netcdf file that contains the model output, e.g. '/home/model_gpp.nc'
 #' @param nc.ref A string that gives the path and name of the netcdf file that contains the reference data output, e.g. '/home/reference_gpp.nc'
@@ -19,17 +19,33 @@
 #' @param plot.width Number that gives the plot width, e.g. 8
 #' @param plot.height Number that gives the plot height, e.g. 4
 #' @param outputDir A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.
+#' @param myLevel A number that determines what level of the output netCDF file to use.
+#' This is relevant for files with multiple levels, which applies to soil data.
+#' By default, myLevel is set to 1.
+#' @param subcaption A string that defines the subcaption of the figure, e.g. '(a)'.
 #' @return A figure in PDF format that gives the zonal mean values of model and
 #' reference data. The bold line presents the mean and the shaded area the
 #' corresponding interquartile range (IQR). The IQR presents the inter-annual variability
 #' and longitudinal variability, combined.
 #'
 #' @examples
-#'
 #' library(amber)
+#' library(classInt)
+#' library(doParallel)
+#' library(foreach)
+#' library(Hmisc)
 #' library(latex2exp)
 #' library(ncdf4)
+#' library(parallel)
 #' library(raster)
+#' library(rgdal)
+#' library(rgeos)
+#' library(scico)
+#' library(sp)
+#' library(stats)
+#' library(utils)
+#' library(viridis)
+#' library(xtable)
 #'
 #' long.name <- 'Gross primary productivity'
 #' nc.mod <- system.file('extdata/modelRegular', 'gpp_monthly.nc', package = 'amber')
@@ -45,9 +61,9 @@
 #' unit.conv.ref, variable.unit, outlier.factor)
 #'
 #' @export
-zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, outlier.factor = 1000, 
-    plot.width = 8, plot.height = 3.8, outputDir = FALSE) {
-    
+zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, outlier.factor = 1000,
+    plot.width = 6, plot.height = 5, outputDir = FALSE, myLevel = 1, subcaption = "") {
+
     # Data preparation
     nc <- ncdf4::nc_open(nc.mod)
     variable.name <- names(nc[["var"]])
@@ -55,39 +71,39 @@ zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, 
     variable.name <- variable.name[length(variable.name)]  # take the last variable (relevant for CanESM5)
     variable.name <- ifelse(variable.name == "burntFractionAll", "burnt", variable.name)  # rename burntFractionAll to shorter name
     variable.name <- toupper(variable.name)  # make variable name upper-case
-    mod <- raster::brick(nc.mod)
+    mod <- raster::brick(nc.mod, level = myLevel)
     dates.mod <- raster::getZ(mod)
     dates.mod <- format(as.Date(dates.mod), "%Y-%m")  # only year and month
     start.date.mod <- min(dates.mod)
     end.date.mod <- max(dates.mod)
-    
+
     # reference data
     ref <- raster::brick(nc.ref)
     dates.ref <- raster::getZ(ref)
     dates.ref <- format(as.Date(dates.ref), "%Y-%m")  # only year and month
     start.date.ref <- min(dates.ref)
     end.date.ref <- max(dates.ref)
-    
+
     # find common time period
     start.date <- max(start.date.mod, start.date.ref)
     end.date <- min(end.date.mod, end.date.ref)
-    
+
     # subset common time period
-    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= 
+    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <=
         end.date)]]
-    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)), "%Y-%m") <= 
+    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)), "%Y-%m") <=
         end.date)]]
-    
+
     # get layer names
     mod.names <- names(mod)
     ref.names <- names(ref)
-    
+
     # unit conversion if appropriate
     mod <- mod * unit.conv.mod
     ref <- ref * unit.conv.ref
-    
+
     # Extreme outliers are set to NA in the grid
-    
+
     mod.mean <- raster::mean(mod, na.rm = TRUE)  # time mean
     mod.outlier_range <- intFun.grid.define.outlier(mod.mean, outlier.factor)  # define outlier range
     outlier.neg <- mod.outlier_range[1]
@@ -96,7 +112,7 @@ zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, 
     mod.mask_outliers <- mod.mask_outliers - mod.mask_outliers + 1
     mod <- mod * mod.mask_outliers
     names(mod) <- mod.names
-    
+
     # reference data
     ref.mean <- raster::mean(ref, na.rm = TRUE)  # time mean
     ref.outlier_range <- intFun.grid.define.outlier(ref.mean, outlier.factor)  # define outlier range
@@ -106,22 +122,33 @@ zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, 
     ref.mask_outliers <- ref.mask_outliers - ref.mask_outliers + 1
     ref <- ref * ref.mask_outliers
     names(ref) <- ref.names
-    
+
+    # create a mask to excludes all grid cells that the model and reference data do not have in common.  This mask varies in
+    # time.
+    mask <- (mod * ref)
+    mask <- mask - mask + 1
+    mod <- mod * mask
+    names(mod) <- mod.names  # this adds the corresponding dates
+    ref <- ref * mask
+    names(ref) <- ref.names  # this adds the corresponding dates
+    # now mod and ref are based on the same grid cells
+
     # Compute zonal mean
-    
     data.list <- list(mod, ref)
     names <- c("mod", "ref")
     for (i in 1:length(data.list)) {
         data <- raster::stack(data.list[i])
-        data.mean <- raster::mean(data, na.rm = TRUE)  # time mean
-        # data.sd <- raster::calc(data, sd) # time standard deviation min and max cover the interquartile range
-        data.min <- raster::calc(data, fun = function(x) {
-            stats::quantile(x, probs = c(0.25), na.rm = TRUE)
-        })
-        data.max <- raster::calc(data, fun = function(x) {
-            stats::quantile(x, probs = c(0.75), na.rm = TRUE)
-        })
-        
+        # convert monthly to annual mean values
+        indices <- format(as.Date(names(data), format = "X%Y.%m.%d"), format = "%Y")
+        indices <- as.numeric(indices)
+        indices <- indices - min(indices) + 1
+
+        # annual mean values
+        data <- raster::stackApply(data, indices, fun = mean)
+        data.mean <- raster::mean(data, na.rm = TRUE)  # annual mean
+        data.min <- min(data, na.rm = TRUE)  # annual min
+        data.max <- max(data, na.rm = TRUE)  # annual max
+
         # get 'z'
         z <- data.mean
         xy <- sp::coordinates(data.mean)
@@ -138,26 +165,29 @@ zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, 
         zonal.mean <- stats::na.omit(zonal.mean)  # omit rows with NA
         assign(paste("zonal.mean", names[i], sep = "."), zonal.mean)
     }
-    
+
     # prepare plot file name
-    
+
     my.filename <- paste(variable.name, ref.id, "zonalMean", sep = "-")
     # plot title
-    my.title <- paste("Zonal mean", variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date)
+    my.title <- paste(variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date)
+
     # colors
-    my.col.mod <- "black"
-    my.col.ref <- "red"
+    myPalette <- "viridis"
+    myCol <- viridis::viridis(n = 2, end = 0.75, option = myPalette)
+    my.col.mod <- myCol[1]
+    my.col.ref <- myCol[2]
     my.col.mod.range <- grDevices::adjustcolor(my.col.mod, alpha = 0.25)
     my.col.ref.range <- grDevices::adjustcolor(my.col.ref, alpha = 0.25)
-    
+
     # limits
     my.xlim <- c(min(zonal.mean.mod[1], zonal.mean.ref[1]), max(zonal.mean.mod[1], zonal.mean.ref[1]))
     # my.xllim <- c(-90,90)
     my.ylim <- c(min(zonal.mean.mod[2], zonal.mean.ref[2]), max(zonal.mean.mod[3], zonal.mean.ref[3]))
-    
+
     # legend bar text
     legend.bar.text <- latex2exp::TeX(variable.unit)
-    
+
     # model data polygons for uncertainty range
     zonal.mean <- zonal.mean.mod
     zone <- zonal.mean$zone
@@ -167,7 +197,7 @@ zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, 
     poly.x.mod <- c(zone, rev(zone))
     poly.y.mod <- c(zonal.mean.min, rev(zonal.mean.max))
     zone.mod <- zone
-    
+
     # reference data polygons for uncertainty range
     zonal.mean <- zonal.mean.ref
     zone <- zonal.mean$zone
@@ -177,17 +207,18 @@ zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, 
     poly.x.ref <- c(zone, rev(zone))
     poly.y.ref <- c(zonal.mean.min, rev(zonal.mean.max))
     zone.ref <- zone
-    
+
     # plot
     oldpar <- graphics::par(mfrow = c(1, 2))
     on.exit(graphics::par(oldpar))
     if (outputDir != FALSE) {
         grDevices::pdf(paste(outputDir, "/", my.filename, ".pdf", sep = ""), width = plot.width, height = plot.height)
     }
-    graphics::par(font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, tcl = 0.3)
+    graphics::par(font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, cex.main = 1, tcl = 0.3)
     # plot
-    graphics::plot(zonal.mean.ref$zone, zonal.mean.ref$zonal.mean.max, main = paste(long.name, my.title, sep = "\n"), type = "l", 
-        xlab = "degrees latitude", ylab = legend.bar.text, xlim = my.xlim, ylim = my.ylim, col = NA, las = 1)
+    graphics::plot(zonal.mean.ref$zone, zonal.mean.ref$zonal.mean.max, main = paste(paste(subcaption, long.name, "(monthly)",
+        sep = " "), my.title, sep = "\n"), type = "l", xlab = "Degrees Latitude", ylab = legend.bar.text, xlim = my.xlim, ylim = my.ylim,
+        col = NA, las = 1)
     # ref
     graphics::polygon(poly.x.ref, poly.y.ref, col = my.col.ref.range, border = NA)
     graphics::lines(zone.ref, zonal.mean.ref$zonal.mean.mean, col = my.col.ref, lwd = 2)
@@ -195,13 +226,12 @@ zonalMean <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, 
     graphics::polygon(poly.x.mod, poly.y.mod, col = my.col.mod.range, border = NA)
     graphics::lines(zone.mod, zonal.mean.mod$zonal.mean.mean, col = my.col.mod, lwd = 2)
     # legend
-    graphics::legend("topright", c("model mean", "model IQR", "reference mean", "reference IQR"), col = c(my.col.mod, my.col.mod.range, 
-        my.col.ref, my.col.ref.range), lty = c(1, NA, 1, NA), lwd = 2, pch = c(NA, 15, NA, 15), bty = "n")
+    graphics::legend("topleft", c("model", "reference"), col = c(my.col.mod, my.col.ref), pch = 16, bty = "n")
     # ticks
     graphics::axis(1, at = seq(-90, 90, 10), labels = FALSE, tcl = 0.3)
     graphics::axis(3, at = seq(-90, 90, 10), labels = FALSE, tcl = 0.3)
     graphics::axis(4, labels = FALSE, tcl = 0.3)
-    
+
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }

@@ -3,47 +3,79 @@
 \docType{package}
 \name{amber-package}
 \alias{amber-package}
-\title{Overview of the functions in the amber package}
+\title{Overview of AMBER functions}
 \description{
 The Canadian Land Surface Scheme Including Biogeochemical Cycles (CLASSIC) is
-the land surface component of the Canadian Earth System Model (CanESM) (Melton and Arora, 2016).
-The Automated Model Benchmarking (AMBER) package evaluates the ability of CLASSIC
+the land surface component of the Canadian Earth System Model (CanESM) (Melton et al, 2020).
+The Automated Model Benchmarking R package (AMBER) evaluates the ability of CLASSIC
 to reproduce land surface processes by comparing model outputs against quasi-observational
 data sets derived from remote sensing products, eddy covariance flux tower measurements,
 and stream flow measurements. To summarize model performance across different
 statistical metrics AMBER employs a skill score system that was originally developed
 by the International Land Model Benchmarking (ILAMB) framework (Collier et al., 2018).
-The amber package was created to tailor the ILAMB skill score approach for CLASSIC
-model outputs.
+AMBER was created to tailor the ILAMB skill score approach for CLASSIC
+model outputs. While AMBER was tested for CLASSIC only it may also work for other models.
 }
 \section{amber functions}{
 
-The functions provided by the amber-package can be grouped into two categories:
+The functions provided by AMBER can be grouped into three categories:
 \itemize{
-\item Functions that compute skill scores. This includes all functions
- with the prefix \emph{scores}. Different functions apply to different reference data,
-  such as spatially gridded data (\code{\link{scores.grid.time}}), eddy covariance flux tower measurements
-   (\code{\link{scores.fluxnet.csv}}), or stream flow measurements (\code{\link{scores.runoff}}).
 
- \item Functions for data visualization. This includes
- \code{\link{plotGrid}},
- \code{\link{plotNc}},
- \code{\link{plotNcIrreg}},
- \code{\link{seasonalCycle}},
- \code{\link{seasonalCycleIrreg}},
- \code{\link{zonalMean}}, and
- \code{\link{zonalMeanIrreg}}.
+\item Functions that compute skill scores and other metrics for a single variable.
+This includes:
+\code{\link{scores.fluxnet.csv}},
+\code{\link{scores.fluxnet.nc}},
+\code{\link{scores.fluxnet.site}},
+\code{\link{scores.functional.response}},
+\code{\link{scores.grid.notime}},
+\code{\link{scores.grid.time}},
+\code{\link{scores.runoff}}, and
+\code{\link{scores.site.notime}}.
+
+\item Functions that visualize model output for a single variable.
+This includes:
+\code{\link{plotEnsembleHovmoeller}},
+\code{\link{plotEnsembleMean}},
+\code{\link{plotGrid}},
+\code{\link{plotHovmoeller}},
+\code{\link{plotNcIrreg}},
+\code{\link{plotNc}},
+\code{\link{plotZonalMeans}},
+\code{\link{plotZonalMeanStats}},
+\code{\link{seasonalCycleIrreg}},
+\code{\link{seasonalCycle}},
+\code{\link{zonalMeanIrreg}},
+\code{\link{zonalMean}}, and
+\code{\link{zonalMeanStats}}.
+
+\item Functions that visualize summary statistics across multiple variables.
+This includes:
+\code{\link{scores.compare.benchmarks}},
+\code{\link{scores.compare.ensemble}},
+\code{\link{scores.compare}},
+\code{\link{scores.tables}},
+\code{\link{scores.tables.tweak}},
+\code{\link{correlationMatrixDiff}},
+\code{\link{correlationMatrixFluxnet}},
+\code{\link{correlationMatrix}},
+\code{\link{globalSumsTable}},
+\code{\link{metrics.compare}},
+\code{\link{plotBars}}, and
+\code{\link{plotFluxnetStats}}.
+
  The suffix \emph{Irreg} indicates that this function may be applied to data
  that is on an irregular grid. In the case of CLASSIC, this applies to high-resolution
- simulations that are conducted for the Canadian domain.
+ simulations that are conducted for the Canadian domain. The string \emph{ensemble}
+ implies that the function is designed to handle multiple model runs.
+
 }
 }
 
 \section{Skill scores}{
 
 The performance of a model is expressed through scores that range from zero to
-one, where increasing values imply better performance. These scores are computed
-in five steps:
+one, where increasing values imply better performance. These scores are usually
+computed in five steps:
 \itemize{
 \item \eqn{(i)} computation of a statistical metric,
 \item \eqn{(ii)} nondimensionalization,
@@ -128,8 +160,10 @@ Charles D. Koven, William J. Riley, Mingquan Mu, and James T. Randerson. 2018.
 “The International Land Model Benchmarking (ILAMB) System: Design, Theory, and
 Implementation.” Journal of Advances in Modeling Earth Systems 10 (11): 2731–54.
 
-Melton, J. R., and V. K. Arora. 2016. “Competition between Plant Functional
-Types in the Canadian Terrestrial Ecosystem Model (CTEM) v. 2.0.” Geoscientific
-Model Development 9 (1): 323–61.
+Melton, Joe R., Vivek K. Arora, Eduard Wisernig-Cojoc, Christian Seiler,
+Matthew Fortier, Ed Chan, and Lina Teckentrup. 2020. “CLASSIC v1.0:
+The Open-Source Community Successor to the Canadian Land Surface Scheme (CLASS)
+and the Canadian Terrestrial Ecosystem Model (CTEM) - Part 1: Model Framework
+and Site-Level Performance.” https://doi.org/10.5194/gmd-13-2825-2020.
 }
 

@@ -68,10 +68,24 @@ where \eqn{f_{mod}(u)} and \eqn{f_{ref}(u)} are the binned time means of
 the model and reference data, respectively.
 }
 \examples{
-
 library(amber)
+library(classInt)
+library(doParallel)
+library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
+
 nc.mod.x <- system.file('extdata/modelRegular', 'tas_monthly.nc', package = 'amber')
 nc.mod.y <- system.file('extdata/modelRegular', 'gpp_monthly.nc', package = 'amber')
 nc.ref.x <- system.file('extdata/modelRegular', 'tas_monthly.nc', package = 'amber')

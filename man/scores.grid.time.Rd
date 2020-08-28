@@ -8,7 +8,8 @@ scores.grid.time(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
   unit.conv.ref, variable.unit, score.weights = c(1, 2, 1, 1, 1),
   outlier.factor = 1000, irregular = FALSE,
   my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.",
-  numCores = 2, timeInt = "month", outputDir = FALSE)
+  numCores = 2, timeInt = "month", outputDir = FALSE, myLevel = 1,
+  variable.name = FALSE, phaseMinMax = "phaseMax")
 }
 \arguments{
 \item{long.name}{A string that gives the full name of the variable, e.g. 'Gross primary productivity'}
@@ -46,18 +47,28 @@ exceed the interquartile range multiplied by the outlier factor defined here.}
 \item{timeInt}{A string that gives the time interval of the model data, e.g. 'month' or 'year'}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{myLevel}{A number that determines what level of the output netCDF file to use.
+This is relevant for files with multiple levels, which applies to soil data.
+By default, myLevel is set to 1.}
+
+\item{variable.name}{A string with the variable name, e.g. 'GPP'. If FALSE, the variable name stored in the NetCDF file will be used instead. Default is FALSE.}
+
+\item{phaseMinMax}{A string (either 'phaseMax' or 'phaseMin') that determines
+whether to assess the seasonal peak as a maximum or a minimum. The latter may be appropriate for variables
+that tend to be negative, such as net longwave radiation or net ecosystem exchange.}
 }
 \value{
-(1) A list that contains three elements. The first element is a a
+(1) A list that contains three elements. The first element is a
 raster stack with model data
-(mean, \eqn{mod.mean}; interannual-variability, \eqn{mod.iav}; month of annual cycle maximum, \eqn{mod.max.month}),
-the reference data (mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}; month of annual cycle maximum, \eqn{ref.max.month}),
+(mean, \eqn{mod.mean}; standard deviation; interannual-variability, \eqn{mod.iav}; monthly mean climatology; month of annual cycle maximum, \eqn{mod.max.month}),
+the reference data (mean, \eqn{ref.mean}; standard deviation; interannual-variability, \eqn{ref.iav}; monthly mean climatology; month of annual cycle maximum, \eqn{ref.max.month}),
 statistical metrics
 (bias, \eqn{bias}; centralized root mean square error, \eqn{crmse}; time difference of the annual cycle maximum, \eqn{phase}),
 and scores (bias score, \eqn{bias.score}; root mean square error score, \eqn{rmse.score}; inter-annual variability score \eqn{iav.score}; annual cycle score (\eqn{phase.score}).
 The second and third element of the list are spatial
 point data frames that give the model and reference outliers, respectively.
-The content of the list can be plotted using \link{plotGrid}.
+Most of the content of the list can be plotted using \link{plotGrid}. The only exception is monthly mean climatology.
 
 (2) NetCDF files for each of the statistical variables listed above.
 
@@ -81,11 +92,22 @@ are documented in \code{\link{amber-package}}.
 \examples{
 \donttest{
 library(amber)
+library(classInt)
 library(doParallel)
 library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
 library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 # (1) Global plots on a regular grid
 long.name <- 'Gross primary productivity'
@@ -97,21 +119,8 @@ unit.conv.mod <- 86400*1000 # optional unit conversion for model data
 unit.conv.ref <- 86400*1000 # optional unit conversion for reference data
 variable.unit <- 'gC m$^{-2}$ day$^{-1}$' # unit after conversion (LaTeX notation)
 
-# Short version using default settings:
 plot.me <- scores.grid.time(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
 unit.conv.ref, variable.unit)
-plotGrid(long.name, plot.me)
-
-# Additional parameters:
-score.weights <- c(1,2,1,1,1) # score weights of S_bias, S_rmse, S_phase, S_iav, S_dist
-outlier.factor <- 1
-irregular <- FALSE
-my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-numCores <- 2
-
-plot.me <- scores.grid.time(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-unit.conv.ref, variable.unit, score.weights, outlier.factor, irregular,
-my.projection, numCores)
 plotGrid(long.name, plot.me)
 
 # (2) Regional plots on a rotated grid
@@ -123,21 +132,19 @@ ref.id <- 'GBAF' # give reference dataset a name
 unit.conv.mod <- 86400*1000 # optional unit conversion for model data
 unit.conv.ref <- 86400*1000 # optional unit conversion for reference data
 variable.unit <- 'gC m$^{-2}$ day$^{-1}$' # unit after conversion (LaTeX notation)
-score.weights <- c(1,2,1,1,1) # score weights of S_bias, S_rmse, S_phase, S_iav, S_dist
-outlier.factor <- 10
-irregular <- TRUE
 my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-numCores <- 2
 
 plot.me <- scores.grid.time(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-unit.conv.ref, variable.unit, score.weights, outlier.factor, irregular,
-my.projection, numCores)
+unit.conv.ref, variable.unit, score.weights = c(1, 2, 1, 1, 1), outlier.factor = 1000,
+irregular = TRUE, my.projection = my.projection, numCores = 2, timeInt = 'month',
+outputDir = FALSE, myLevel = 1, variable.name = FALSE)
 
 # Plot results:
 irregular <- TRUE # data is on an irregular grid
 my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
- package = 'amber')
+# shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
+#  package = 'amber')
+shp.filename <- system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber")
 my.xlim <- c(-171, 0) # longitude range that you wish to plot
 my.ylim <- c(32, 78) # latitude range that you wish to plot
 plot.width <- 7 # plot width
@@ -145,5 +152,7 @@ plot.height <- 3.8 # plot height
 
 plotGrid(long.name, plot.me, irregular, my.projection,
 shp.filename, my.xlim, my.ylim, plot.width, plot.height)
-}
+} #donttest
+
+
 }

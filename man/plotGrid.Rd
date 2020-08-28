@@ -38,10 +38,10 @@ plot, e.g. c(-90, 90)}
 \value{
 Figures in PDF format.
 This may include the model data
-(mean, \eqn{mod.mean}; interannual-variability, \eqn{mod.iav}; month of
+(mean, \eqn{mod.mean}; standard deviation; interannual-variability, \eqn{mod.iav}; month of
 annual cycle maximum, \eqn{mod.max.month}),
 the reference data
-(mean, \eqn{ref.mean}; interannual-variability, \eqn{ref.iav}; month of
+(mean, \eqn{ref.mean}; standard deviation; interannual-variability, \eqn{ref.iav}; month of
 annual cycle maximum, \eqn{ref.max.month}),
 statistical metrics
 (bias, \eqn{bias}; root mean square error, \eqn{rmse}; time difference of the
@@ -61,11 +61,22 @@ This function plots the results from \link{scores.grid.time} and
 # (1) Global plots on a regular grid
 
 library(amber)
+library(classInt)
 library(doParallel)
 library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
 library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Gross primary productivity'
 nc.mod <- system.file('extdata/modelRegular', 'gpp_monthly.nc', package = 'amber')
@@ -81,15 +92,9 @@ plot.me <- scores.grid.time(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv
 unit.conv.ref, variable.unit)
 plotGrid(long.name, plot.me)
 
-# Additional parameters:
-score.weights <- c(1,2,1,1,1) # score weights of S_bias, S_rmse, S_phase, S_iav, S_dist
-outlier.factor <- 1
-irregular <- FALSE
-my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-
 plot.me <- scores.grid.time(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-unit.conv.ref, variable.unit, score.weights, outlier.factor, irregular,
-my.projection)
+unit.conv.ref, variable.unit, score.weights = c(1,2,1,1,1), outlier.factor = 1,
+irregular = FALSE)
 plotGrid(long.name, plot.me)
 
 # (2) Regional plots on a rotated grid
@@ -101,20 +106,18 @@ ref.id <- 'GBAF' # give reference dataset a name
 unit.conv.mod <- 86400*1000 # optional unit conversion for model data
 unit.conv.ref <- 86400*1000 # optional unit conversion for reference data
 variable.unit <- 'gC m$^{-2}$ day$^{-1}$' # unit after conversion (LaTeX notation)
-score.weights <- c(1,2,1,1,1) # score weights of S_bias, S_rmse, S_phase, S_iav, S_dist
-outlier.factor <- 10
-irregular <- TRUE
 my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
 
 plot.me <- scores.grid.time(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-unit.conv.ref, variable.unit, score.weights, outlier.factor, irregular,
-my.projection)
+unit.conv.ref, variable.unit, score.weights = c(1,2,1,1,1), outlier.factor = 10,
+irregular = TRUE, my.projection = my.projection)
 
 # Plot results:
 irregular <- TRUE # data is on an irregular grid
 my.projection <- '+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
- package = 'amber')
+# shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
+# package = 'amber')
+shp.filename <- system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber")
 my.xlim <- c(-171, 0) # longitude range that you wish to plot
 my.ylim <- c(32, 78) # latitude range that you wish to plot
 plot.width <- 7 # plot width
@@ -122,5 +125,5 @@ plot.height <- 3.8 # plot height
 
 plotGrid(long.name, plot.me, irregular, my.projection,
 shp.filename, my.xlim, my.ylim, plot.width, plot.height)
-}
+} #donttest
 }

@@ -4,13 +4,26 @@
 \alias{correlationMatrix}
 \title{Correlation matrix for statistical metrics computed by AMBER}
 \usage{
-correlationMatrix(metric, inputDir, outputDir = FALSE,
+correlationMatrix(metric, fileList = FALSE, myFiles = NA,
+  myRows = NA, myColumns = NA, inputDir, outputDir = FALSE,
   significanceLevel = 0.01, plot.width = 8, plot.height = 6.8,
   plot.margin = c(10, 10, 1, 4))
 }
 \arguments{
 \item{metric}{A string that indicates for what statistical metric the correlation matrix should be computed.
-Options are 'bias', 'crmse', 'phase', 'bias-score', 'crmse-score', 'phase-score', or 'iav-score'.}
+Options are 'mod-mean', ref-mean', bias', 'crmse', 'phase', 'bias-score', 'crmse-score', 'phase-score', or 'iav-score'.}
+
+\item{fileList}{Logical, FALSE by default. Should be set to TRUE if user defines a list of files that shall be included in the analysis.
+If set to FALSE, the function will search for all files whose names include the string of the metric defined above.}
+
+\item{myFiles}{Names of NetCDF files that shall be included in the analysis. Only relevant if fileList is TRUE.}
+
+\item{myRows}{Optional: the user can highlight relations between variables by
+specifying variable names along the rows and columns of a matrix. Those relations
+are then highlighted by plotting a polygon around the corresponding grid cells
+and by plotting the corresponding value.}
+
+\item{myColumns}{Optional: Same as myRows but for variable names listed along the columns of the matrix.}
 
 \item{inputDir}{A string that gives the location of NetCDF files produced by \link{scores.grid.time}, e.g. '/home/project/study'.}
 
@@ -28,19 +41,41 @@ Options are 'bias', 'crmse', 'phase', 'bias-score', 'crmse-score', 'phase-score'
 A list with the Spearman correlation coefficient and corresponding p-values, and a Figure of the correlation matrix
 }
 \description{
-This function produces a correlation matrices for \eqn{bias}, \eqn{rmse},
+This function produces a correlation matrices for mean values, \eqn{bias}, \eqn{rmse},
 \eqn{crmse}, \eqn{phase}, and corresponding scores. The input data consist of netCDF files
 produced by \link{scores.grid.time} and \link{scores.grid.notime}.
 }
 \examples{
-
+\donttest{
 library(amber)
+library(classInt)
+library(doParallel)
 library(foreach)
 library(Hmisc)
+library(latex2exp)
 library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 inputDir <- paste(system.file('extdata', package = 'amber'), 'zonalMeanStats', sep = '/')
-correlationMatrix(metric = 'bias', inputDir)
+correlationMatrix(metric = 'bias', inputDir = inputDir)
 
+# Alternatively, use a list of file names
+myFiles <- c('GPP-FluxCom-bias.nc', 'LAI-AVHRR-bias.nc', 'ALBS-CERES-bias.nc')
+
+# You can specify certain relationships to highlight them in your correlation matrix
+myRows <- c('LAI.AVHRR', 'ALBS.CERES')
+myColumns <- c('GPP.FluxCom', 'GPP.FluxCom')
+
+correlationMatrix(metric = 'bias', fileList = TRUE, myFiles = myFiles,
+myRows = myRows, myColumns = myColumns, inputDir = inputDir)
+} #donttest
 }

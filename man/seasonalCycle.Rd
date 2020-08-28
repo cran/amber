@@ -5,8 +5,9 @@
 \title{Zonal mean plots of model and reference data}
 \usage{
 seasonalCycle(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-  unit.conv.ref, variable.unit, outlier.factor = 1000, plot.width = 8,
-  plot.height = 3.8, outputDir = FALSE)
+  unit.conv.ref, variable.unit, outlier.factor = 1000, plot.width = 6,
+  plot.height = 5, outputDir = FALSE, myLevel = 1,
+  globalValues = "globalMean")
 }
 \arguments{
 \item{long.name}{A string that gives the full name of the variable, e.g. 'Gross primary productivity'}
@@ -25,12 +26,8 @@ seasonalCycle(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
 
 \item{variable.unit}{A string that gives the final units using LaTeX notation, e.g. 'gC m$^{-2}$ day$^{-1}$'}
 
-\item{outlier.factor}{A number that is used to define outliers, e.g. 10.
- Plotting raster objects that contain extreme outliers lead to figures where
- most grid cells are presented by a single color since the color legend covers
- the entire range of values. To avoid this, the user may define outliers that
- will be masked out and marked with a red dot. Outliers are all values that
- exceed the interquartile range multiplied by the outlier factor defined here.
+\item{outlier.factor}{A number that is used to define outliers, e.g. 10. Outliers are all values that
+exceed the interquartile range multiplied by the outlier factor defined here.
 180 degrees and FALSE if you want longitudes to range from 0 to 360 degrees}
 
 \item{plot.width}{Number that gives the plot width, e.g. 8}
@@ -38,23 +35,43 @@ seasonalCycle(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
 \item{plot.height}{Number that gives the plot height, e.g. 4}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{myLevel}{A number that determines what level of the output netCDF file to use.
+This is relevant for files with multiple levels, which applies to soil data.
+By default, myLevel is set to 1.}
+
+\item{globalValues}{Either 'globalMean' or 'globalSum'. If set to 'globalMean',
+values are averaged across all grid cells. If set to 'globalSum', values are
+summed up. The sum is weighted by grid cell area.}
 }
 \value{
-A plot in PDF format that gives the (a) global mean time series and
-(b) the climatological mean seasonal cycle of model and reference data.
-The bold line presents the spatial mean values and the shaded area gives the
-total range caused by interannual variability.
+Three plots in PDF format that give the (a) monthly time series, (b)
+annual time series, and (c) the climatological mean seasonal cycle of model
+and reference data. Concerning the latter, thee bold line presents the mean
+and the shaded area gives the total range caused by interannual variability.
 }
 \description{
 This function plots the mean seasonal cycle and corresponding inter-quartile
 range of model and reference data.
 }
 \examples{
-
 library(amber)
+library(classInt)
+library(doParallel)
+library(foreach)
+library(Hmisc)
 library(latex2exp)
 library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Gross primary productivity'
 nc.mod <- system.file('extdata/modelRegular', 'gpp_monthly.nc', package = 'amber')
@@ -67,6 +84,5 @@ variable.unit <- 'gC m$^{-2}$ day$^{-1}$' # unit after conversion (LaTeX notatio
 outlier.factor <- 1000
 
 seasonalCycle(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-unit.conv.ref, variable.unit, outlier.factor)
-
+unit.conv.ref, variable.unit)
 }

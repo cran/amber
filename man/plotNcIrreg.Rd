@@ -58,11 +58,22 @@ data to be on an irregular grid.
 \examples{
 \donttest{
 library(amber)
+library(classInt)
 library(doParallel)
 library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
 library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Gross primary productivity'
 nc.mod <- system.file('extdata/modelRotated', 'gpp_monthly.nc', package = 'amber')
@@ -78,5 +89,5 @@ plot.width <- 7 # plot width
 plot.height <- 3.8 # plot height
 
 plotNcIrreg(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit, timePeriod, outlier.factor)
-}
+} #donttest
 }

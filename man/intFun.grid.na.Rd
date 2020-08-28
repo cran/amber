@@ -10,7 +10,7 @@ intFun.grid.na(x)
 \item{x}{A raster object}
 }
 \value{
-A raster object where all NA's have been repalced with zero
+A raster object where all NA's have been replaced with zero
 }
 \description{
 This function sets all NA's in a raster object to zero.

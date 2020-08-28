@@ -7,12 +7,12 @@
 zonalMeanStats(inputDir, outputDir = FALSE)
 }
 \arguments{
-\item{inputDir}{A string that gives the location of NetCDF files produced by \link{scores.grid.time}, e.g. '/home/project/study'.}
+\item{inputDir}{A string that gives the location of NetCDF files produced by \link{scores.grid.time} and \link{scores.grid.notime}, e.g. '/home/project/study'.}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
 }
 \value{
-A list with two tables. The first table gives the zonal mean values of centralized root-mean-squre error, phase, inter-annual variability, and corresponding
+A list with two tables. The first table gives the zonal mean values of the mean, bias, standard deviation, centralized root-mean-squre error, month of seasonal peak, phase, inter-annual variability, and corresponding
 scores for each variable and globally gridded reference data set. The second table gives the physical units of each variable in LaTeX notation (e.g. 'W m$^{-2}$').
 Both tables are written to two text files (zonalMeanStats and zonalMeanStatsUnits) if the user specifies an output directory.
 }
@@ -20,13 +20,24 @@ Both tables are written to two text files (zonalMeanStats and zonalMeanStatsUnit
 This function computes zonal mean values of model and reference data and the zonal mean bias, centralized root-mean-squre error, phase, inter-annual variability, and corresponding scores. The computation is based on the NetCDF files produced by \link{scores.grid.time}.
 }
 \examples{
-
 library(amber)
+library(classInt)
+library(doParallel)
 library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 inputDir <- paste(system.file('extdata', package = 'amber'), 'zonalMeanStats', sep = '/')
 zonalMeanStats(inputDir, outputDir = FALSE)
-
 }

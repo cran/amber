@@ -5,7 +5,8 @@
 \title{Summarize results in a table and a plot}
 \usage{
 scores.tables(plot.width = 6, plot.height = 5, myMargin = c(4, 13, 3,
-  4), inputDir = getwd(), outputDir = FALSE)
+  4), inputDir = getwd(), outputDir = FALSE, sortByScore = FALSE,
+  defineVariableOrder = FALSE, myVariables = myVariables)
 }
 \arguments{
 \item{plot.width}{Number that gives the plot width, e.g. 6}
@@ -17,6 +18,12 @@ scores.tables(plot.width = 6, plot.height = 5, myMargin = c(4, 13, 3,
 \item{inputDir}{A string that gives the input directory, e.g. '/home/project/study'.}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{sortByScore}{logical. If TRUE, score table is sorted by overall score. FALSE by default.}
+
+\item{defineVariableOrder}{Logical. If TRUE, variables are sorted according to the parameter myVariables defined below. Default setting is FALSE.}
+
+\item{myVariables}{An R object with variable names of variables that should be included in table, e.g. c('GPP', 'RECO', 'NEE')}
 }
 \value{
 (1) Two tables in LaTeX format that shows the scores of all variables that were assessed (with and without mass weighting).
@@ -37,11 +44,24 @@ functions
 \examples{
 
 library(amber)
+library(classInt)
+library(doParallel)
+library(foreach)
+library(Hmisc)
 library(latex2exp)
+library(ncdf4)
+library(parallel)
+library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
 library(viridis)
 library(xtable)
 
 myInputDir <- paste(system.file('extdata', package = 'amber'), 'scores', sep = '/')
-scores.tables(inputDir = myInputDir)
+scores.tables(inputDir = myInputDir, sortByScore = TRUE)
 
 }

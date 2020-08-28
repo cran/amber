@@ -1,4 +1,4 @@
-################################################################################ 
+################################################################################
 #' Zonal mean plots of model and reference data on an irregular grid
 #' @description This function plots the mean seasonal cycle and corresponding inter-quartile
 #' range of model and reference data that are stored on an irregular grid.
@@ -30,14 +30,23 @@
 #'
 #' @examples
 #' \donttest{
-#'
 #' library(amber)
+#' library(classInt)
 #' library(doParallel)
 #' library(foreach)
+#' library(Hmisc)
 #' library(latex2exp)
-#' library(parallel)
 #' library(ncdf4)
+#' library(parallel)
 #' library(raster)
+#' library(rgdal)
+#' library(rgeos)
+#' library(scico)
+#' library(sp)
+#' library(stats)
+#' library(utils)
+#' library(viridis)
+#' library(xtable)
 #'
 #' long.name <- 'Gross primary productivity'
 #' nc.mod <- system.file('extdata/modelRotated', 'gpp_monthly.nc', package = 'amber')
@@ -50,12 +59,12 @@
 #'
 #' seasonalCycleIrreg(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
 #' unit.conv.ref, variable.unit)
-#' }
+#' } #donttest
 #' @export
-seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, outlier.factor = 1000, 
-    my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.", plot.width = 8, plot.height = 3.8, 
+seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod, unit.conv.ref, variable.unit, outlier.factor = 1000,
+    my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.", plot.width = 8, plot.height = 3.8,
     numCores = 2, timeInt = "month", outputDir = FALSE) {
-    
+
     regular <- "+proj=longlat +ellps=WGS84"
     rotated <- my.projection
     # get variable name
@@ -74,7 +83,7 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
         lon <- ncdf4::ncvar_get(nc, "lon")
         lat <- ncdf4::ncvar_get(nc, "lat")
         time <- ncdf4::ncvar_get(nc, "time")
-        # 
+        #
         nCol <- base::length(lon[, 1])
         nRow <- base::length(lon[1, ])
         nTime <- base::length(time)
@@ -88,14 +97,14 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
         end.date <- max(dates)
         start.date <- format(as.Date(start.date), "%Y-%m")
         end.date <- format(as.Date(end.date), "%Y-%m")
-        
+
         lon <- base::matrix(lon, ncol = 1)
         lat <- base::matrix(lat, ncol = 1)
-        
+
         lonLat <- base::data.frame(lon, lat)
         sp::coordinates(lonLat) <- ~lon + lat
         raster::projection(lonLat) <- regular
-        lonLat <- sp::spTransform(lonLat, sp::CRS(rotated))
+        suppressWarnings(lonLat <- sp::spTransform(lonLat, sp::CRS(rotated)))
         myExtent <- raster::extent(lonLat)
         # create an empty raster
         r <- raster::raster(ncols = nCol, nrows = nRow)  # empty raster
@@ -109,7 +118,7 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
             raster::extent(r) <- myExtent  # extent using the rotated projection
             r <- r * 1  # this is necessary for the base::do.call function below
         }
-        
+
         myStack <- base::do.call(raster::stack, myRaster)
         parallel::stopCluster(cl)
         myStack <- raster::setZ(myStack, dates, name = "time")
@@ -117,27 +126,27 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
         assign(paste(c("mod", "ref")[id], sep = ""), myStack)
         assign(paste("start.date", c("mod", "ref")[id], sep = "."), start.date)
         assign(paste("end.date", c("mod", "ref")[id], sep = "."), end.date)
-        
+
     }
-    
+
     # find common time period
     start.date <- max(start.date.mod, start.date.ref)
     end.date <- min(end.date.mod, end.date.ref)
-    
+
     # subset common time period
-    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= 
+    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <=
         end.date)]]
-    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)), "%Y-%m") <= 
+    ref <- ref[[which(format(as.Date(raster::getZ(ref)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(ref)), "%Y-%m") <=
         end.date)]]
-    
+
     # get layer names
     mod.names <- names(mod)
     ref.names <- names(ref)
-    
+
     # unit conversion if appropriate
     mod <- mod * unit.conv.mod
     ref <- ref * unit.conv.ref
-    
+
     # all extreme outliers are set to NA in the grid they can be marked as a dot in the plot model data
     mod.mean <- raster::mean(mod, na.rm = TRUE)  # time mean
     mod.outlier_range <- intFun.grid.define.outlier(mod.mean, outlier.factor)  # define outlier range
@@ -146,7 +155,7 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     mod.mask_outliers <- intFun.grid.outliers.na(mod.mean, outlier.neg, outlier.pos)
     mod.mask_outliers <- mod.mask_outliers - mod.mask_outliers + 1
     mod <- mod * mod.mask_outliers
-    
+
     # reference data
     ref.mean <- raster::mean(ref, na.rm = TRUE)  # time mean
     ref.outlier_range <- intFun.grid.define.outlier(ref.mean, outlier.factor)  # define outlier range
@@ -155,67 +164,67 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     ref.mask_outliers <- intFun.grid.outliers.na(ref.mean, outlier.neg, outlier.pos)
     ref.mask_outliers <- ref.mask_outliers - ref.mask_outliers + 1
     ref <- ref * ref.mask_outliers
-    
+
     # Ensure that both data sets use the same grid cells
-    
+
     mask <- mod.mean * ref.mean
     mask <- mask - mask + 1
-    
+
     mod <- mod * mask
     ref <- ref * mask
-    
+
     names(mod) <- mod.names
     names(ref) <- ref.names
-    
+
     # Compute seasonal cycle
-    
+
     data.list <- list(mod, ref)
     names <- c("mod", "ref")
-    
+
     for (i in 1:length(data.list)) {
         data <- raster::stack(data.list[i])
-        
+
         # date
         date <- as.Date(names(data), format = "X%Y.%m.%d")
         index <- format(as.Date(names(mod), format = "X%Y.%m.%d"), format = "%m")
         month <- as.numeric(index)
-        
+
         # time series
         time.series <- raster::cellStats(data, stat = "mean", na.rm = TRUE)
         time.series <- data.frame(date, month, time.series)
         colnames(time.series) <- c("date", "month", "data")
-        
+
         # seasonal cycle
         index <- list(time.series$month)
         seasonMean <- tapply(time.series$data, index, mean, na.rm = TRUE)
         seasonMin <- tapply(time.series$data, index, min, na.rm = TRUE)
         seasonMax <- tapply(time.series$data, index, max, na.rm = TRUE)
-        
+
         months <- seq(1, 12, 1)
-        
+
         # make polygon inputs for plot
         poly.x <- c(months, rev(months))
         poly.y <- c(seasonMin, rev(seasonMax))
-        
+
         # assign names
         assign(paste("time.series", names[i], sep = "."), time.series)
         assign(paste("seasonMean", names[i], sep = "."), seasonMean)
         assign(paste("poly.y", names[i], sep = "."), poly.y)
     }
-    
+
     # prepare plot inputs
-    
+
     my.filename <- paste(variable.name, ref.id, "seasonalCycle", sep = "-")
-    
+
     # colors
     my.col.mod <- "black"
     my.col.ref <- "red"
     my.col.mod.range <- grDevices::adjustcolor(my.col.mod, alpha = 0.25)
     my.col.ref.range <- grDevices::adjustcolor(my.col.ref, alpha = 0.25)
-    
+
     # legend bar text
     legend.bar.text <- latex2exp::TeX(variable.unit)
-    
+
     # plot
     oldpar <- graphics::par(mfrow = c(1, 2))
     on.exit(graphics::par(oldpar))
@@ -223,19 +232,19 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
         grDevices::pdf(paste(outputDir, "/", my.filename, "-timeseries.pdf", sep = ""), width = plot.width, height = plot.height)
     }
     graphics::par(mfrow = c(1, 1), font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, tcl = 0.3)
-    
+
     # (a) time series plot
-    
+
     # plot title
-    
+
     my.title <- paste("Global mean", variable.name, mod.id, "vs", ref.id, "from", start.date, "to", end.date)
-    
+
     # time series
-    
-    my.ylim <- c(min(time.series.mod$data, time.series.ref$data, na.rm = TRUE), max(time.series.mod$data, time.series.ref$data, 
+
+    my.ylim <- c(min(time.series.mod$data, time.series.ref$data, na.rm = TRUE), max(time.series.mod$data, time.series.ref$data,
         na.rm = TRUE))
-    
-    graphics::plot(as.Date(time.series.ref$date), time.series.ref$data, col = "red", main = paste(long.name, my.title, sep = "\n"), 
+
+    graphics::plot(as.Date(time.series.ref$date), time.series.ref$data, col = "red", main = paste(long.name, my.title, sep = "\n"),
         type = "l", xlab = NA, ylab = legend.bar.text, ylim = my.ylim, las = 1)
     graphics::lines(as.Date(time.series.mod$date), time.series.mod$data, col = "black")
     graphics::legend("topleft", c("model", "reference"), col = c("black", "red"), lty = 1, bty = "n")
@@ -244,40 +253,40 @@ seasonalCycleIrreg <- function(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.c
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }
-    
+
     # (b) climatological mean seasonal cycle
     if (outputDir != FALSE) {
         grDevices::pdf(paste(outputDir, "/", my.filename, "-clim.pdf", sep = ""), width = plot.width, height = plot.height)
     }
     graphics::par(mfrow = c(1, 1), font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, tcl = 0.3)
-    
+
     my.ylim <- c(min(poly.y.mod, poly.y.ref), max(poly.y.mod, poly.y.ref))
-    
-    graphics::plot(seq(1, 12, 1), seasonMean.mod, main = paste(long.name, my.title, sep = "\n"), type = "l", xaxt = "n", 
-        xlab = "", ylab = legend.bar.text, ylim = my.ylim, col = NA, las = 1)
-    
+
+    graphics::plot(seq(1, 12, 1), seasonMean.mod, main = paste(long.name, my.title, sep = "\n"), type = "l", xaxt = "n", xlab = "",
+        ylab = legend.bar.text, ylim = my.ylim, col = NA, las = 1)
+
     months <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     axis(1, at = 1:12, labels = months)
-    
+
     # ref
     months <- seq(1, 12, 1)
     graphics::polygon(poly.x, poly.y.ref, col = my.col.ref.range, border = NA)
     graphics::lines(months, seasonMean.ref, col = my.col.ref, lwd = 2)
-    
+
     # mod
     graphics::polygon(poly.x, poly.y.mod, col = my.col.mod.range, border = NA)
     graphics::lines(months, seasonMean.mod, col = my.col.mod, lwd = 2)
-    
+
     # legend
-    graphics::legend("topleft", c("model (mean and total range)", "reference (mean and total range)"), col = c(my.col.mod, 
-        my.col.ref), lty = 1, lwd = 2, bty = "n")
+    graphics::legend("topleft", c("model (mean and total range)", "reference (mean and total range)"), col = c(my.col.mod, my.col.ref),
+        lty = 1, lwd = 2, bty = "n")
     # ticks
     graphics::axis(4, labels = FALSE, tcl = 0.3)
-    
+
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }
 }
-if (getRversion() >= "2.15.1") utils::globalVariables(c("time.series.mod", "time.series.ref", "time.series.mod", "poly.y.mod", 
+if (getRversion() >= "2.15.1") utils::globalVariables(c("time.series.mod", "time.series.ref", "time.series.mod", "poly.y.mod",
     "poly.y.ref", "seasonMean.mod", "seasonMean.ref", "start.date.mod", "start.date.ref"))
 

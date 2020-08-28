@@ -1,22 +1,33 @@
 ################################################################################
 #' Zonal mean plots of AMBER results (bias, bias scores, etc)
 #' @description This function computes zonal mean values of model and reference data and the zonal mean bias, centralized root-mean-squre error, phase, inter-annual variability, and corresponding scores. The computation is based on the NetCDF files produced by \link{scores.grid.time}.
-#' @param inputDir A string that gives the location of NetCDF files produced by \link{scores.grid.time}, e.g. '/home/project/study'.
+#' @param inputDir A string that gives the location of NetCDF files produced by \link{scores.grid.time} and \link{scores.grid.notime}, e.g. '/home/project/study'.
 #' @param outputDir A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.
-#' @return A list with two tables. The first table gives the zonal mean values of centralized root-mean-squre error, phase, inter-annual variability, and corresponding
+#' @return A list with two tables. The first table gives the zonal mean values of the mean, bias, standard deviation, centralized root-mean-squre error, month of seasonal peak, phase, inter-annual variability, and corresponding
 #' scores for each variable and globally gridded reference data set. The second table gives the physical units of each variable in LaTeX notation (e.g. 'W m$^{-2}$').
 #' Both tables are written to two text files (zonalMeanStats and zonalMeanStatsUnits) if the user specifies an output directory.
 #'
 #' @examples
-#'
 #' library(amber)
+#' library(classInt)
+#' library(doParallel)
 #' library(foreach)
+#' library(Hmisc)
+#' library(latex2exp)
 #' library(ncdf4)
+#' library(parallel)
 #' library(raster)
+#' library(rgdal)
+#' library(rgeos)
+#' library(scico)
+#' library(sp)
+#' library(stats)
+#' library(utils)
+#' library(viridis)
+#' library(xtable)
 #'
 #' inputDir <- paste(system.file('extdata', package = 'amber'), 'zonalMeanStats', sep = '/')
 #' zonalMeanStats(inputDir, outputDir = FALSE)
-#'
 #' @export
 zonalMeanStats <- function(inputDir, outputDir = FALSE) {
 
@@ -24,7 +35,11 @@ zonalMeanStats <- function(inputDir, outputDir = FALSE) {
     nc.mod.mean <- list.files(path = inputDir, pattern = "mod-mean.nc")
     nc.ref.mean <- list.files(path = inputDir, pattern = "ref-mean.nc")
     nc.bias <- list.files(path = inputDir, pattern = "-bias.nc")
+    nc.mod.sd <- list.files(path = inputDir, pattern = "mod-sd.nc")
+    nc.ref.sd <- list.files(path = inputDir, pattern = "ref-sd.nc")
     nc.crmse <- list.files(path = inputDir, pattern = "-crmse.nc")
+    nc.mod.max.month <- list.files(path = inputDir, pattern = "mod-max-month.nc")
+    nc.ref.max.month <- list.files(path = inputDir, pattern = "ref-max-month.nc")
     nc.phase <- list.files(path = inputDir, pattern = "-phase.nc")
     nc.iav <- list.files(path = inputDir, pattern = "-iav.nc")
     nc.score <- list.files(path = inputDir, pattern = "-score.nc")
@@ -51,7 +66,8 @@ zonalMeanStats <- function(inputDir, outputDir = FALSE) {
     units <- Reduce(rbind, unitList)
     #---------------------------------------------------------------------------
     # get data from all variables
-    all.files <- list(nc.mod.mean, nc.ref.mean, nc.bias, nc.crmse, nc.phase, nc.iav, nc.score)
+    all.files <- list(nc.mod.mean, nc.ref.mean, nc.bias, nc.mod.sd, nc.ref.sd, nc.crmse, nc.mod.max.month, nc.ref.max.month,
+        nc.phase, nc.iav, nc.score)
     all.files <- unlist(all.files)
     names <- all.files
     names <- gsub(".nc", "", names)

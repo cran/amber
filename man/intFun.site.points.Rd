@@ -14,7 +14,7 @@ intFun.site.points(lon, lat, data)
 \item{data}{A vector (data values)}
 }
 \value{
-A patial points data frame
+A spatial points data frame
 }
 \description{
 This function creates a spatial points data frame for a regular gaussian grid.

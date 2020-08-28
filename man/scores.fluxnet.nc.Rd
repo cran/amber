@@ -6,11 +6,12 @@
 \usage{
 scores.fluxnet.nc(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
   unit.conv.ref, variable.unit, score.weights, rotate.me = TRUE,
-  irregular = FALSE, my.projection = "+proj=longlat +ellps=WGS84",
+  irregular = FALSE,
+  my.projection = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0",
   shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp",
   package = "amber"), my.xlim = c(-180, 180), my.ylim = c(-60, 85),
   plot.width = 8, plot.height = 3.8, numCores = 2,
-  outputDir = FALSE)
+  outputDir = FALSE, phaseMinMax = "phaseMax")
 }
 \arguments{
 \item{long.name}{A string that gives the full name of the variable, e.g. 'Gross primary productivity'}
@@ -55,6 +56,10 @@ plot, e.g. c(-90, 90)}
 \item{numCores}{An integer that defines the number of cores, e.g. 2}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{phaseMinMax}{A string (either 'phaseMax' or 'phaseMin') that determines
+whether to assess the seasonal peak as a maximum or a minimum. The latter may be appropriate for variables
+that tend to be negative, such as net longwave radiation or net ecosystem exchange.}
 }
 \value{
 (1) Figures in PDF format that show global maps of
@@ -73,9 +78,10 @@ when averaging over all station.
 }
 \description{
 This function compares model output against
-FLUXNET measurements in NetCDF format. The performance of a model is
-expressed through scores that range from zero to one, where increasing values
-imply better performance. These scores are computed in five steps:
+measurements from FLUXNET or from the Baseline Surface Radiation Networking in
+NetCDF format. The performance of a model is expressed through scores that range
+from zero to one, where increasing values imply better performance. These scores
+are computed in five steps:
 \eqn{(i)} computation of a statistical metric,
 \eqn{(ii)} nondimensionalization,
 \eqn{(iii)} conversion to unit interval,
@@ -86,13 +92,24 @@ inter-annual variability, and spatial distribution. The corresponding equations
 are documented in \code{\link{amber-package}}.
 }
 \examples{
-
 library(amber)
+library(classInt)
 library(doParallel)
 library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
 library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
+
 long.name <- 'Gross primary productivity'
 nc.mod <- system.file('extdata/modelRegular', 'gpp_monthly.nc', package = 'amber')
 nc.ref <- system.file('extdata/referenceRegular', 'gpp_FLUXNET.nc', package = 'amber')
@@ -126,8 +143,9 @@ score.weights <- c(1,2,1,1,1) # score weights of S_bias, S_rmse, S_phase, S_iav,
 rotate.me <- FALSE
 irregular <- TRUE
 my.projection <-'+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.'
-shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
- package = 'amber')
+# shp.filename <- system.file('extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp',
+# package = 'amber')
+shp.filename <- system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber")
 my.xlim <- c(-171, 0) # longitude range that you wish to plot
 my.ylim <- c(32, 78) # latitude range that you wish to plot
 plot.width <- 7 # plot width
@@ -138,5 +156,5 @@ scores.fluxnet.nc(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
 unit.conv.ref, variable.unit, score.weights, rotate.me, irregular,
 my.projection,
 shp.filename, my.xlim, my.ylim)
-}
+} #donttest
 }

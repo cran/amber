@@ -19,7 +19,8 @@ that can be used to define a color bar legend for plotting biases. The
 function ensures that the absolute values of the minimum and maximum are
 identical. For instance, consider a bias that ranges from -10 to 300.
 The resulting minimum and maximum value used by the color scheme are then
-- 300 and 300, respectively.
+-300 and +300, respectively. The function excludes extremes identified as 1st
+and 99th percentiles.
 }
 \examples{
 

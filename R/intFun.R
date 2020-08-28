@@ -113,7 +113,7 @@ intFun.grid.outliers.points <- function(x, outlier.neg, outlier.pos) {
 #' Replace NA with zero in raster object
 #' @description This function sets all NA's in a raster object to zero.
 #' @param x A raster object
-#' @return A raster object where all NA's have been repalced with zero
+#' @return A raster object where all NA's have been replaced with zero
 #' @examples
 #'
 #' library(raster)
@@ -237,7 +237,7 @@ intFun.grid.wilcox <- function(x) {
 #' @param lon A vector (longitude)
 #' @param lat A vector (latitude)
 #' @param data A vector (data values)
-#' @return A patial points data frame
+#' @return A spatial points data frame
 #' @examples
 #'
 #' library(raster)
@@ -489,7 +489,56 @@ intFun.min.max.int <- function(x) {
         values = x
     }
     values <- stats::na.omit(values)
-    classes <- classInt::classIntervals(values, style = "pretty")
+    suppressWarnings(classes <- classInt::classIntervals(values, style = "pretty"))
+    classes <- data.frame(classes[2])
+    min <- min(classes[])
+    max <- max(classes[])
+    int <- classes[2, ] - classes[1, ]
+    min <- round(min, 3)
+    max <- round(max, 3)
+    int <- round(int, 3)
+    y <- c(min, max, int)
+    return(y)
+}
+
+#-------------------------------------------------------------------------------
+
+# intFun.min.max.int.ext
+#' Range and interval for color bar legend
+#' @description This function returns the minimum, maximum, and interval value
+#' that can be used to define a color bar legend. The minimum and maximum values are computed for the first and 99th percentile.
+#' @param x An R object
+#' @return Minimum, maximum, and interval value for color bar legend
+#' @examples
+#'
+#' library(raster)
+#' library(classInt)
+#' # create a raster object
+#' data <- runif(100,-23,864)
+#' data <- matrix(data, ncol=10)
+#' data <- raster::raster(data)
+#' # Get min, max, and interval for color bar legend
+#' mmi <- intFun.min.max.int.ext(data)
+#'
+#' @keywords internal
+#' @export
+intFun.min.max.int.ext <- function(x) {
+    if (intFun.isRaster(x) == TRUE) {
+        values <- raster::getValues(x)
+    } else {
+        values = x
+    }
+    values <- stats::na.omit(values)
+
+    # exclude extremes
+
+    qUpper <- stats::quantile(values, probs = 0.99)
+    qLower <- stats::quantile(values, probs = 0.01)
+    values[values > qUpper] <- NA
+    values[values < qLower] <- NA
+    values <- stats::na.omit(values)
+
+    suppressWarnings(classes <- classInt::classIntervals(values, style = "pretty"))
     classes <- data.frame(classes[2])
     min <- min(classes[])
     max <- max(classes[])
@@ -534,7 +583,7 @@ intFun.min.max.int.mod.ref <- function(mod, ref) {
         values <- unlist(c(mod, ref))
     }
     values <- stats::na.omit(values)
-    classes <- classInt::classIntervals(values, style = "pretty")
+    suppressWarnings(classes <- classInt::classIntervals(values, style = "pretty"))
     classes <- data.frame(classes[2])
     min <- min(classes[])
     max <- max(classes[])
@@ -555,7 +604,8 @@ intFun.min.max.int.mod.ref <- function(mod, ref) {
 #' function ensures that the absolute values of the minimum and maximum are
 #' identical. For instance, consider a bias that ranges from -10 to 300.
 #' The resulting minimum and maximum value used by the color scheme are then
-#' - 300 and 300, respectively.
+#' -300 and +300, respectively. The function excludes extremes identified as 1st
+#' and 99th percentiles.
 #' @param x An R object
 #' @return Minimum, maximum, and interval value for color bar legend used for
 #' plotting biases.
@@ -579,9 +629,65 @@ intFun.min.max.int.bias <- function(x) {
         values = x
     }
     values <- stats::na.omit(values)
+
+    # exclude extremes
+    qUpper <- stats::quantile(values, probs = 0.99)
+    qLower <- stats::quantile(values, probs = 0.01)
+    values[values > qUpper] <- NA
+    values[values < qLower] <- NA
+    values <- stats::na.omit(values)
+
     max.abs <- max(abs(values))
     values <- c(-max.abs, max.abs, values)
-    classes <- classInt::classIntervals(values, style = "pretty")
+    suppressWarnings(classes <- classInt::classIntervals(values, style = "pretty"))
+    classes <- data.frame(classes[2])
+    min <- min(classes[])
+    max <- max(classes[])
+    int <- classes[2, ] - classes[1, ]
+    min <- round(min, 3)
+    max <- round(max, 3)
+    int <- round(int, 3)
+    y <- c(min, max, int)
+    return(y)
+}
+
+#-------------------------------------------------------------------------------
+
+# intFun.min.max.int.diff
+#' Range and interval for color bar legend (difference)
+#' @description This function returns the minimum, maximum, and interval value
+#' that can be used to define a color bar legend for plotting differences. The
+#' function ensures that the absolute values of the minimum and maximum are
+#' identical. For instance, consider a bias that ranges from -10 to 300.
+#' The resulting minimum and maximum value used by the color scheme are then
+#' -300 and 300, respectively. The function is similar to intFun.min.max.int.bias,
+#' but does not exclude extremes.
+#' @param x An R object
+#' @return Minimum, maximum, and interval value for color bar legend used for
+#' plotting biases.
+#' @examples
+#'
+#' library(raster)
+#' library(classInt)
+#' # create a raster object
+#' data <- runif(100,-23,864)
+#' data <- matrix(data, ncol=10)
+#' data <- raster::raster(data)
+#' # Get min, max, and interval for color bar legend
+#' mmi <- intFun.min.max.int.diff(data)
+#'
+#' @keywords internal
+#' @export
+intFun.min.max.int.diff <- function(x) {
+    if (intFun.isRaster(x) == TRUE) {
+        values <- raster::getValues(x)
+    } else {
+        values = x
+    }
+    values <- stats::na.omit(values)
+    max.abs <- max(abs(values))
+    values <- c(-max.abs, max.abs, values)
+    suppressWarnings(classes <- classInt::classIntervals(values, style = "pretty"))
     classes <- data.frame(classes[2])
     min <- min(classes[])
     max <- max(classes[])
@@ -598,7 +704,7 @@ intFun.min.max.int.bias <- function(x) {
 # intFun.min.max.int.raw
 #' Range and interval for color bar legend
 #' @description This function returns the minimum, maximum, and interval value
-#' that can be used to define a color bar legend. Contary to \link{intFun.min.max.int},
+#' that can be used to define a color bar legend. Contrary to \link{intFun.min.max.int},
 #' this function does not use any rounding to find pretty values for min, max, int,
 #' which is an advantage for plotting data with extremely small numerical values.
 #' @param x An R object
@@ -623,7 +729,7 @@ intFun.min.max.int.raw <- function(x) {
         values = x
     }
     values <- stats::na.omit(values)
-    classes <- classInt::classIntervals(values, style = "pretty")
+    suppressWarnings(classes <- classInt::classIntervals(values, style = "pretty"))
     classes <- data.frame(classes[2])
     min <- min(classes[])
     max <- max(classes[])
@@ -720,14 +826,161 @@ intFun.coast <- function(my.xlim, my.ylim, my.projection = "+proj=longlat +ellps
     box <- sp::Polygon(box)
     box <- sp::Polygons(list(box), 1)
     box <- sp::SpatialPolygons(list(box))
-    raster::projection(box) <- regular
+    suppressWarnings(raster::projection(box) <- regular)
     # coastline
     land <- raster::shapefile(shp.filename)
-    raster::projection(land) <- regular
-    land <- rgeos::gBuffer(land, width = 0) # this avoids a Ring Self-intersection error
+    suppressWarnings(raster::projection(land) <- regular)
+    suppressWarnings(land <- rgeos::gBuffer(land, width = 0))  # this avoids a Ring Self-intersection error
     land <- raster::crop(land, box)
-    land <- sp::spTransform(land, sp::CRS(my.projection))
+    suppressWarnings(land <- sp::spTransform(land, sp::CRS(my.projection)))
     return(land)
+}
+
+#-------------------------------------------------------------------------------
+
+# random sampling in time
+
+#-------------------------------------------------------------------------------
+
+# intFun.sampleGridTime
+#' Random sampling of gridded reference data along time axis
+#' @description This function conducts random sampling
+#' @param ref A raster object
+#' @return A raster object
+#' @examples
+#'
+#' library(raster)
+#' # make some data
+#' data01 <- c(seq(1,99,1), NA)
+#' data02 <- c(NA, seq(101,199,1))
+#' data03 <- data01 + data02
+#' data01 <- raster::raster(matrix(data01, ncol=10))
+#' data02 <- raster::raster(matrix(data02, ncol=10))
+#' data03 <- raster::raster(matrix(data03, ncol=10))
+#' data <- raster::stack(data01, data02, data03)
+#'
+#' randomSample <- raster::calc(data, fun = intFun.sampleGridTime)
+#'
+#' plot(data)
+#' plot(randomSample)
+#'
+#' @keywords internal
+#' @export
+intFun.sampleGridTime <- function(ref) {
+    mask.ref <- ref - ref + 1
+    mySize <- length(ref)
+    mySample <- sample(ref, size = mySize, replace = TRUE)
+    y <- mySample
+    y <- mySample * mask.ref
+    return(y)
+}
+#-------------------------------------------------------------------------------
+
+# intFun.sampleGridTimeAndSpace
+#' random sampling across space and time (if available) for reference grid data
+#' @description This function conducts random sampling with replacement for a single raster layer
+#' @param ref A raster object
+#' @return A raster object
+#' @examples
+#'
+#' library(raster)
+#' # make some data
+#' data01 <- c(seq(1,99,1), NA)
+#' data02 <- c(NA, seq(101,199,1))
+#' data03 <- data01 + data02
+#' data01 <- raster::raster(matrix(data01, ncol=10))
+#' data02 <- raster::raster(matrix(data02, ncol=10))
+#' data03 <- raster::raster(matrix(data03, ncol=10))
+#' data <- raster::stack(data01, data02, data03)
+#'
+#' randomSample <- intFun.sampleGridTimeAndSpace(ref = data)
+#' plot(data)
+#' plot(randomSample)
+#'
+#' @keywords internal
+#' @export
+intFun.sampleGridTimeAndSpace <- function(ref) {
+    mask.ref <- ref - ref + 1
+    refValues <- raster::values(ref)
+    mySize <- length(refValues)
+    refValues <- matrix(refValues, ncol = 1)
+    refValues <- stats::na.omit(refValues)
+    mySample <- sample(refValues, size = mySize, replace = TRUE)
+    y <- raster::setValues(ref, mySample)
+    y <- y * mask.ref
+    return(y)
+}
+
+#-------------------------------------------------------------------------------
+
+# intFun.sampleDataFrame
+#' random sampling across space and time for a data frame (FLUXNET and runoff).
+#' @description This function conducts random sampling with replacement for a single raster layer
+#' @param ref A raster object
+#' @return A raster object
+#' @examples
+#'
+#' # make some data
+#' data <- seq(1, 29, 1)
+#' data <- c(data, NA)
+#' data <- data.frame(matrix(data, ncol = 10))
+#'
+#' randomSample <- intFun.sampleDataFrame(ref = data)
+#' print(data)
+#' print(randomSample)
+#'
+#' @keywords internal
+#' @export
+intFun.sampleDataFrame <- function(ref) {
+    mask <- ref - ref + 1
+    refValues <- unlist(ref)
+    mySize <- length(refValues)
+    refValues <- data.frame(refValues)
+    refValues <- stats::na.omit(refValues)
+    refValues <- unlist(refValues)
+    refSample <- sample(refValues, size = mySize, replace = TRUE)
+    refSample <- matrix(refSample, ncol = ncol(ref))
+    refSample <- data.frame(refSample)
+    refSample <- refSample * mask
+    y <- refSample
+    return(y)
+}
+
+#-------------------------------------------------------------------------------
+
+# intFun.addBWtext
+#' Add text to raster
+#' @description This function adds text to raster. A threshold value determines
+#' whether the text is black or white
+#' @param myRaster A raster object
+#' @param myDigits An integer that gives the number of desired digits
+#' @param myDigits A number that determines the size of the text, e.g. 0.7
+#' @return plots text of a raster object
+#' @examples
+#'
+#' library(raster)
+#' # make some data
+#' data <- runif(100,-1,1)
+#' data <- matrix(data, ncol=10)
+#' data <- raster::raster(data)
+#'
+#' plot(data)
+#' intFun.addBWtext(myRaster = data, myDigits = 1, myCex = 0.7)
+#'
+#' @keywords internal
+#' @export
+intFun.addBWtext <- function(myRaster, myDigits = 1, myCex = 0.7) {
+    myThreshold <- max(abs(raster::values(myRaster)), na.rm = TRUE)/2
+    if (min(abs(raster::values(myRaster)), na.rm = TRUE) < myThreshold) {
+        raster::text(myRaster, digits = myDigits, fun = function(x) {
+            abs(x) < myThreshold
+        }, cex = myCex)
+    }
+    if (max(abs(raster::values(myRaster)), na.rm = TRUE) >= myThreshold) {
+        raster::text(myRaster, digits = myDigits, fun = function(x) {
+            abs(x) >= myThreshold
+        }, col = "white", cex = myCex)
+    }
 }
 
 #-------------------------------------------------------------------------------
@@ -748,8 +1001,7 @@ intFun.coast <- function(my.xlim, my.ylim, my.projection = "+proj=longlat +ellps
 #' @keywords internal
 #' @export
 intFun.isRaster <- function(x) {
-  return((class(x) == "RasterLayer" || class(x) == "RasterBrick" ||
-            class(x) == "RasterStack"))
+    return((class(x) == "RasterLayer" || class(x) == "RasterBrick" || class(x) == "RasterStack"))
 }
 
 #-------------------------------------------------------------------------------

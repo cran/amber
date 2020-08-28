@@ -5,8 +5,8 @@
 \title{Zonal mean plots of model and reference data}
 \usage{
 zonalMean(long.name, nc.mod, nc.ref, mod.id, ref.id, unit.conv.mod,
-  unit.conv.ref, variable.unit, outlier.factor = 1000, plot.width = 8,
-  plot.height = 3.8, outputDir = FALSE)
+  unit.conv.ref, variable.unit, outlier.factor = 1000, plot.width = 6,
+  plot.height = 5, outputDir = FALSE, myLevel = 1, subcaption = "")
 }
 \arguments{
 \item{long.name}{A string that gives the full name of the variable, e.g. 'Gross primary productivity'}
@@ -37,6 +37,12 @@ exceed the interquartile range multiplied by the outlier factor defined here.}
 \item{plot.height}{Number that gives the plot height, e.g. 4}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{myLevel}{A number that determines what level of the output netCDF file to use.
+This is relevant for files with multiple levels, which applies to soil data.
+By default, myLevel is set to 1.}
+
+\item{subcaption}{A string that defines the subcaption of the figure, e.g. '(a)'.}
 }
 \value{
 A figure in PDF format that gives the zonal mean values of model and
@@ -45,15 +51,27 @@ corresponding interquartile range (IQR). The IQR presents the inter-annual varia
 and longitudinal variability, combined.
 }
 \description{
-This function plots zonal mean values and corresponding inter-quartile
-ranges of model and reference data.
+This function plots zonal mean annual means and corresponding total
+range for model and reference data.
 }
 \examples{
-
 library(amber)
+library(classInt)
+library(doParallel)
+library(foreach)
+library(Hmisc)
 library(latex2exp)
 library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Gross primary productivity'
 nc.mod <- system.file('extdata/modelRegular', 'gpp_monthly.nc', package = 'amber')

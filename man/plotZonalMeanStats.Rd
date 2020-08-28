@@ -17,19 +17,30 @@ plotZonalMeanStats(zonalMeanStats, zonalMeanStatsUnits,
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
 }
 \value{
-Figures that show zonal mean values of model and reference data, centralized root-mean-squre error, phase, inter-annual variability, and corresponding
+Figures that show zonal mean values of model and reference data, centralized root-mean-square error, phase, inter-annual variability, and corresponding
 scores for each variable and globally gridded reference data set.
 }
 \description{
-This function plots results from \link{zonalMeanStats}, i.e. zonal mean values of model and reference data and the zonal mean bias, centralized root-mean-squre error, phase, inter-annual variability, and corresponding scores.
+This function plots results from \link{zonalMeanStats}, i.e. zonal mean values of model and reference data and the zonal mean bias, centralized root-mean-square error, phase, inter-annual variability, and corresponding scores.
 }
 \examples{
-
 library(amber)
+library(classInt)
+library(doParallel)
 library(foreach)
+library(Hmisc)
 library(latex2exp)
 library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 zonalMeanStats <- system.file('extdata/zonalMeanStats', 'zonalMeanStats', package = 'amber')
 zonalMeanStatsUnits <- system.file('extdata/zonalMeanStats',

@@ -14,7 +14,7 @@ Minimum, maximum, and interval value for color bar legend
 }
 \description{
 This function returns the minimum, maximum, and interval value
-that can be used to define a color bar legend. Contary to \link{intFun.min.max.int},
+that can be used to define a color bar legend. Contrary to \link{intFun.min.max.int},
 this function does not use any rounding to find pretty values for min, max, int,
 which is an advantage for plotting data with extremely small numerical values.
 }

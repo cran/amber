@@ -5,7 +5,9 @@
 \title{Compares scores from two model runs}
 \usage{
 scores.compare(mod01.path, mod02.path, mod01.id, mod02.id,
-  score.weights = c(1, 2, 1, 1, 1), outputDir = FALSE)
+  score.weights = c(1, 2, 1, 1, 1), plot.width = 7.3,
+  plot.height = 5, outputDir = FALSE, defineVariableOrder = FALSE,
+  myVariables = myVariables)
 }
 \arguments{
 \item{mod01.path}{A string that gives the path where the output from \link{scores.tables} is stored (model 1)}
@@ -19,7 +21,15 @@ scores.compare(mod01.path, mod02.path, mod01.id, mod02.id,
 \item{score.weights}{R object that gives the weights of each score (\eqn{S_{bias}}, \eqn{S_{rmse}}, \eqn{S_{phase}}, \eqn{S_{iav}}, \eqn{S_{dist}})
 that are used for computing the overall score, e.g. c(1,2,1,1,1)}
 
+\item{plot.width}{Number that gives the plot width, e.g. 6}
+
+\item{plot.height}{Number that gives the plot height, e.g. 5}
+
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{defineVariableOrder}{Logical. If TRUE, variables are sorted according to the parameter myVariables defined below. Default setting is FALSE.}
+
+\item{myVariables}{An R object with variable names of variables that should be included in table, e.g. c('GPP', 'RECO', 'NEE')}
 }
 \value{
 A figure in PDF format that shows the (a) skill score and (b) skill
@@ -31,9 +41,23 @@ indicate that score differences are not statistically significant at the
 This function compares scores from two different model runs.
 }
 \examples{
-
 library(amber)
+library(classInt)
+library(doParallel)
+library(foreach)
+library(Hmisc)
+library(latex2exp)
+library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 mod01.path <- system.file('extdata/model01', package = 'amber')
 mod02.path <- system.file('extdata/model02', package = 'amber')

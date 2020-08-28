@@ -1,20 +1,31 @@
 ################################################################################
 #' Plot zonal mean plots of AMBER results (bias, bias scores, etc)
-#' @description This function plots results from \link{zonalMeanStats}, i.e. zonal mean values of model and reference data and the zonal mean bias, centralized root-mean-squre error, phase, inter-annual variability, and corresponding scores.
+#' @description This function plots results from \link{zonalMeanStats}, i.e. zonal mean values of model and reference data and the zonal mean bias, centralized root-mean-square error, phase, inter-annual variability, and corresponding scores.
 #' @param zonalMeanStats A string that gives the name and location of the zonalMeanStats file produced by \link{zonalMeanStats}, e.g. '/home/project/study/zonalMeanStats'.
 #' @param zonalMeanStatsUnits A string that gives the name and location of the zonalMeanStatsUnits file produced by \link{zonalMeanStats}, e.g. '/home/project/study/zonalMeanStatsUnits'.
 #' @param lat.range Latitudinal range of ticks and labels on the horizontal axis, e.g. c(-50, 80).
 #' @param outputDir A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.
-#' @return Figures that show zonal mean values of model and reference data, centralized root-mean-squre error, phase, inter-annual variability, and corresponding
+#' @return Figures that show zonal mean values of model and reference data, centralized root-mean-square error, phase, inter-annual variability, and corresponding
 #' scores for each variable and globally gridded reference data set.
 #'
 #' @examples
-#'
 #' library(amber)
+#' library(classInt)
+#' library(doParallel)
 #' library(foreach)
+#' library(Hmisc)
 #' library(latex2exp)
 #' library(ncdf4)
+#' library(parallel)
 #' library(raster)
+#' library(rgdal)
+#' library(rgeos)
+#' library(scico)
+#' library(sp)
+#' library(stats)
+#' library(utils)
+#' library(viridis)
+#' library(xtable)
 #'
 #' zonalMeanStats <- system.file('extdata/zonalMeanStats', 'zonalMeanStats', package = 'amber')
 #' zonalMeanStatsUnits <- system.file('extdata/zonalMeanStats',
@@ -24,6 +35,7 @@
 #' @export
 plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = c(-50, 80), outputDir = FALSE) {
 
+    myPalette <- "viridis"
     units <- utils::read.table(zonalMeanStatsUnits)
     data <- utils::read.table(zonalMeanStats)
 
@@ -31,10 +43,10 @@ plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = 
     names <- colnames(data)
     names <- names[-1]  # drop column zone
 
-    # select all biases
-    bias.score <- grep("bias.score", names)
-    bias.score <- names[bias.score]
-    variables <- gsub(pattern = ".bias.score", replacement = "", bias.score)
+    # select variables that vary in time
+    rmse.score <- grep("rmse.score", names)
+    rmse.score <- names[rmse.score]
+    variables <- gsub(pattern = ".rmse.score", replacement = "", rmse.score)
     variables <- data.frame(variables)
     # merge variable names and units
     variables <- merge(variables, units, by = "variables")
@@ -54,8 +66,8 @@ plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = 
         if (outputDir != FALSE) {
             grDevices::pdf(paste(outputDir, "/", my.filename, sep = ""), width = plot.width, height = plot.height)
         }
-        graphics::par(mfrow = c(6, 1), font.main = 1, mar = c(0, 0, 0, 0), oma = c(5, 5, 2, 5), lwd = 1, cex = 1, xpd = NA,
-            tck = 0.03, las = 1)
+        graphics::par(mfrow = c(6, 1), font.main = 1, mar = c(0, 0, 0, 0), oma = c(5, 5, 2, 5), lwd = 1, cex = 1, xpd = NA, tck = 0.03,
+            las = 1)
 
         myTitle <- gsub(pattern = ".", replacement = " ", names[i], fixed = TRUE)
         # mean
@@ -72,11 +84,12 @@ plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = 
         y.min <- min(mean$mean.mod, mean$mean.ref, na.rm = TRUE)
         y.max <- max(mean$mean.mod, mean$mean.ref, na.rm = TRUE)
         my.ylim <- c(y.min, y.max)
-        plot(mean$zone, mean$mean.mod, type = "l", main = NA, ylim = my.ylim, xlab = NA, ylab = "mean", xaxt = "n", yaxt = "n",
-            panel.first = graphics::rect(-23, y.min, 23, y.max, density = NULL, angle = 0, col = "grey90", border = NA))
-        graphics::lines(mean$zone, mean$mean.ref, col = "red")
+        myCol <- viridis::viridis(n = 2, end = 0.75, option = myPalette)
+        plot(mean$zone, mean$mean.mod, col = myCol[1], type = "l", main = NA, ylim = my.ylim, xlab = NA, ylab = "mean", xaxt = "n",
+            yaxt = "n", panel.first = graphics::rect(-23, y.min, 23, y.max, density = NULL, angle = 0, col = "grey90", border = NA))
+        graphics::lines(mean$zone, mean$mean.ref, col = myCol[2])
         graphics::legend("topleft", "(a)")
-        graphics::legend("topright", c("model", "reference"), col = c("black", "red"), pch = 16, horiz = TRUE, bty = "n")
+        graphics::legend("topright", c("model", "reference"), col = c(myCol[1], myCol[2]), pch = 16, horiz = TRUE, bty = "n")
         graphics::axis(1, at = seq(lat.range[1], lat.range[2], 10), labels = FALSE, tcl = 0.3)
         graphics::axis(2, labels = FALSE, tcl = 0.3)
         graphics::axis(3, at = seq(lat.range[1], lat.range[2], 10), labels = FALSE, tcl = 0.3)
@@ -100,17 +113,31 @@ plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = 
         graphics::lines(lat.range, c(0, 0), lty = 2)
         graphics::mtext(my.unit, 4, line = 1, las = 3)
 
-        # crmse
+        # crmse + sd
         my.ylab <- "crmse"
         my.unit <- latex2exp::TeX(units[i])
         colname <- paste(names[i], ".crmse", sep = "")
         crmse <- data[colname]
+        colname <- paste(names[i], ".mod.sd", sep = "")
+        sd.mod <- data[colname]
+        colname <- paste(names[i], ".ref.sd", sep = "")
+        sd.ref <- data[colname]
         zone <- data[1]
-        crmse <- data.frame(data[1], crmse[1])
-        colnames(crmse) <- c("zone", "crmse")
-        plot(crmse$zone, crmse$crmse, type = "l", main = NA, xlab = NA, ylab = "crmse", xaxt = "n", yaxt = "n", panel.first = graphics::rect(-23,
-            min(crmse$crmse, na.rm = TRUE), 23, max(crmse$crmse, na.rm = TRUE), density = NULL, angle = 0, col = "grey90",
-            border = NA))
+        crmse <- data.frame(data[1], crmse[1], sd.mod[1], sd.ref[1])
+        colnames(crmse) <- c("zone", "crmse", "sd.mod", "sd.ref")
+
+        y.min <- min(crmse$crmse, crmse$sd.mod, crmse$sd.ref, na.rm = TRUE)
+        y.max <- max(crmse$crmse, crmse$sd.mod, crmse$sd.ref, na.rm = TRUE)
+        my.ylim <- c(y.min, y.max)
+        myCol <- viridis::viridis(n = 3, end = 0.75, option = myPalette)
+
+        plot(crmse$zone, crmse$crmse, col = myCol[1], ylim = my.ylim, type = "l", main = NA, xlab = NA, ylab = "crmse & sd",
+            xaxt = "n", yaxt = "n", panel.first = graphics::rect(-23, y.min, 23, y.max, density = NULL, angle = 0, col = "grey90",
+                border = NA))
+        graphics::lines(crmse$zone, crmse$sd.mod, col = myCol[2])
+        graphics::lines(crmse$zone, crmse$sd.ref, col = myCol[3])
+        graphics::legend("bottomleft", c("model sd", "reference sd", "crmse"), col = c(myCol[1], myCol[2], myCol[3]), pch = 16,
+            horiz = TRUE, bty = "n")
         graphics::legend("topleft", "(c)")
         graphics::axis(1, at = seq(lat.range[1], lat.range[2], 10), labels = FALSE, tcl = 0.3)
         graphics::axis(2, labels = FALSE, tcl = 0.3)
@@ -126,8 +153,7 @@ plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = 
         phase <- data.frame(data[1], phase[1])
         colnames(phase) <- c("zone", "phase")
         plot(phase$zone, phase$phase, type = "l", main = NA, xlab = NA, ylab = my.ylab, xaxt = "n", panel.first = graphics::rect(-23,
-            min(phase$phase, na.rm = TRUE), 23, max(phase$phase, na.rm = TRUE), density = NULL, angle = 0, col = "grey90",
-            border = NA))
+            min(phase$phase, na.rm = TRUE), 23, max(phase$phase, na.rm = TRUE), density = NULL, angle = 0, col = "grey90", border = NA))
         graphics::legend("topleft", "(d)")
         graphics::axis(1, at = seq(lat.range[1], lat.range[2], 10), labels = FALSE, tcl = 0.3)
         graphics::axis(4, labels = FALSE, tcl = 0.3)
@@ -147,19 +173,21 @@ plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = 
         y.min <- min(iav$iav.mod, iav$iav.ref, na.rm = TRUE)
         y.max <- max(iav$iav.mod, iav$iav.ref, na.rm = TRUE)
         my.ylim <- c(y.min, y.max)
-        plot(iav$zone, iav$iav.mod, type = "l", main = NA, ylim = my.ylim, xlab = NA, ylab = "iav", xaxt = "n", yaxt = "n",
-            panel.first = graphics::rect(-23, y.min, 23, y.max, density = NULL, angle = 0, col = "grey90", border = NA))
-        graphics::lines(iav$zone, iav$iav.ref, col = "red")
+        myCol <- viridis::viridis(n = 2, end = 0.75, option = myPalette)
+
+        plot(iav$zone, iav$iav.mod, col = myCol[1], type = "l", main = NA, ylim = my.ylim, xlab = NA, ylab = "iav", xaxt = "n",
+            yaxt = "n", panel.first = graphics::rect(-23, y.min, 23, y.max, density = NULL, angle = 0, col = "grey90", border = NA))
+        graphics::lines(iav$zone, iav$iav.ref, col = myCol[2])
         graphics::legend("topleft", "(e)")
-        graphics::legend("topright", c("model", "reference"), col = c("black", "red"), pch = 16, horiz = TRUE, bty = "n")
+        graphics::legend("topright", c("model", "reference"), col = c(myCol[1], myCol[2]), pch = 16, horiz = TRUE, bty = "n")
         graphics::axis(1, at = seq(lat.range[1], lat.range[2], 10), labels = FALSE, tcl = 0.3)
         graphics::axis(2, labels = FALSE, tcl = 0.3)
         graphics::axis(4, labels = TRUE, tcl = 0.3)
         graphics::mtext(my.unit, 4, line = 3, las = 3)
 
         # scores
-        my.ylab <- "score (-)"
-        my.unit <- "dimensionless"
+        my.ylab <- "scores"
+        my.unit <- "(-)"
         colname.bias.score <- paste(names[i], ".bias.score", sep = "")
         colname.rmse.score <- paste(names[i], ".rmse.score", sep = "")
         colname.phase.score <- paste(names[i], ".phase.score", sep = "")
@@ -174,19 +202,23 @@ plotZonalMeanStats <- function(zonalMeanStats, zonalMeanStatsUnits, lat.range = 
         scores <- data.frame(data[1], bias.score[1], rmse.score[1], phase.score[1], iav.score[1])
         colnames(scores) <- c("zone", "bias.score", "rmse.score", "phase.score", "iav.score")
 
-        plot(scores$zone, scores$bias.score, type = "l", ylim = c(0, 1), xlab = "Degrees Latitude", xaxt = "n", ylab = my.ylab,
-            panel.first = graphics::rect(-23, 0, 23, 1, density = NULL, angle = 0, col = "grey90", border = NA))
+        myCol <- viridis::viridis(n = 4, end = 0.75, option = myPalette)
 
-        graphics::lines(scores$zone, scores$rmse.score, col = "red")
-        graphics::lines(scores$zone, scores$phase.score, col = "blue")
-        graphics::lines(scores$zone, scores$iav.score, col = "darkgreen")
+        plot(scores$zone, scores$bias.score, col = myCol[1], type = "l", ylim = c(0, 1), xlab = "Degrees Latitude", xaxt = "n",
+            ylab = my.ylab, panel.first = graphics::rect(-23, 0, 23, 1, density = NULL, angle = 0, col = "grey90", border = NA))
+
+        graphics::lines(scores$zone, scores$rmse.score, col = myCol[2])
+        graphics::lines(scores$zone, scores$phase.score, col = myCol[3])
+        graphics::lines(scores$zone, scores$iav.score, col = myCol[4])
         graphics::legend("topleft", "(f)")
-        graphics::legend("bottomleft", expression("s"[bias], "s"[rmse], "s"[phase], "s"[iav]), col = c("black", "red", "blue",
-            "darkgreen"), pch = 16, horiz = TRUE, bty = "n")
+        graphics::legend("bottomleft", expression("s"[bias], "s"[rmse], "s"[phase], "s"[iav]), col = c(myCol[1], myCol[2], myCol[3],
+            myCol[4]), pch = 16, horiz = TRUE, bty = "n")
         graphics::axis(1, at = seq(lat.range[1], lat.range[2], 10), labels = TRUE, tcl = 0.3)
         graphics::axis(4, labels = FALSE, tcl = 0.3)
         graphics::mtext(my.unit, 4, line = 1, las = 3)
-        grDevices::dev.off()
+        if (outputDir != FALSE) {
+            grDevices::dev.off()
+        }
     }
 
 }

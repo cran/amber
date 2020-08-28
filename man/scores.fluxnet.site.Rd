@@ -8,7 +8,8 @@ scores.fluxnet.site(long.name, mod.csv, mod.csv.path, ref.csv, mod.id,
   ref.id, unit.conv.mod, unit.conv.ref, variable.unit, sites,
   score.weights = c(1, 2, 1, 1, 1), my.xlim = c(-180, 180),
   my.ylim = c(-60, 85), plot.width = 8, plot.height = 3.8,
-  numCores = 2, outputDir = FALSE)
+  numCores = 2, outputDir = FALSE, phaseMinMax = "phaseMax",
+  myCex = 0.7)
 }
 \arguments{
 \item{long.name}{A string that gives the full name of the variable, e.g. 'Gross primary productivity'}
@@ -47,6 +48,12 @@ plot, e.g. c(-90, 90)}
 \item{numCores}{An integer that defines the number of cores, e.g. 2}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory.}
+
+\item{phaseMinMax}{A string (either 'phaseMax' or 'phaseMin') that determines
+whether to assess the seasonal peak as a maximum or a minimum. The latter may be appropriate for variables
+that tend to be negative, such as net longwave radiation or net ecosystem exchange.}
+
+\item{myCex}{A number that determines the size of the dots in the Figure. Default is set to 0.7.}
 }
 \value{
 (1) Figures in PDF format that show maps of
@@ -81,11 +88,22 @@ are documented in \code{\link{amber-package}}.
 \examples{
 \donttest{
 library(amber)
+library(classInt)
 library(doParallel)
 library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
 library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Gross primary productivity'
 mod.csv <- 'gpp_monthly.csv'
@@ -96,10 +114,8 @@ ref.id <- 'FLUXNET' # give reference dataset a name
 unit.conv.mod <- 86400*1000 # optional unit conversion for model data
 unit.conv.ref <- 1 # optional unit conversion for reference data
 variable.unit <- 'gC m$^{-2}$ day$^{-1}$' # unit after conversion (LaTeX notation)
-sites <- c('AU-Tum', 'CA-TPD', 'CZ-BK1', 'DK-Sor', 'FR-Fon', 'GH-Ank', 'IT-Tor',
- 'PA-SPs', 'RU-Ha1', 'US-WCr', 'ZM-Mon', 'BR-Sa1', 'CG-Tch', 'DE-Kli', 'ES-LgS',
- 'FR-Pue', 'IT-Lav', 'MY-PSO', 'RU-Che', 'RU-SkP', 'US-Wkg', 'CA-Qfo', 'CN-Dan',
- 'DE-Tha', 'FI-Hyy', 'GF-Guy', 'IT-SRo', 'NL-Loo', 'RU-Fyo', 'SD-Dem', 'ZA-Kru')
+
+sites <- c('AU-Tum','CA-TPD', 'US-WCr')
 
 # Short version using default settings:
 scores.fluxnet.site(long.name, mod.csv, mod.csv.path, ref.csv, mod.id, ref.id,
@@ -121,5 +137,5 @@ my.xlim, my.ylim, plot.height, numCores)
 scores.fluxnet.site(long.name, mod.csv, mod.csv.path, ref.csv, mod.id, ref.id,
 unit.conv.mod, unit.conv.ref, variable.unit, sites,
 my.xlim = c(-150, -60), my.ylim = c(20, 60), plot.width = 6, plot.height = 3.8)
-}
+} #donttest
 }

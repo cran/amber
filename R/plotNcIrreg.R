@@ -1,4 +1,4 @@
-################################################################################ 
+################################################################################
 #' Plots the time-mean of a variable stored in NetCDF model output on an irregular grid
 #' @description This function plots the time-mean, spatial-mean, zonal mean, and
 #' seasonal cycle of variable stored in NetCDF model output. The function expects
@@ -29,11 +29,22 @@
 #' @examples
 #' \donttest{
 #' library(amber)
+#' library(classInt)
 #' library(doParallel)
 #' library(foreach)
+#' library(Hmisc)
+#' library(latex2exp)
 #' library(ncdf4)
 #' library(parallel)
 #' library(raster)
+#' library(rgdal)
+#' library(rgeos)
+#' library(scico)
+#' library(sp)
+#' library(stats)
+#' library(utils)
+#' library(viridis)
+#' library(xtable)
 #'
 #' long.name <- 'Gross primary productivity'
 #' nc.mod <- system.file('extdata/modelRotated', 'gpp_monthly.nc', package = 'amber')
@@ -49,11 +60,11 @@
 #' plot.height <- 3.8 # plot height
 #'
 #' plotNcIrreg(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit, timePeriod, outlier.factor)
-#' }
+#' } #donttest
 #' @export
-plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit, timePeriod, outlier.factor = 1000, my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.", 
+plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit, timePeriod, outlier.factor = 1000, my.projection = "+proj=ob_tran +o_proj=longlat +o_lon_p=83. +o_lat_p=42.5 +lon_0=263.",
     my.xlim = c(-171, 0), my.ylim = c(32, 78), plot.width = 7, plot.height = 3.8, numCores = 2, timeInt = "month", outputDir = FALSE) {
-    
+
     regular <- "+proj=longlat +ellps=WGS84"
     rotated <- my.projection
     # get variable name
@@ -63,13 +74,13 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     variable.name <- ifelse(variable.name == "burntFractionAll", "burnt", variable.name)  # rename burntFractionAll to shorter name
     variable.name <- toupper(variable.name)  # make variable name upper-case
     ncdf4::nc_close(nc)
-    
+
     nc <- ncdf4::nc_open(nc.mod)
     data <- ncdf4::ncvar_get(nc)  # get values
     lon <- ncdf4::ncvar_get(nc, "lon")
     lat <- ncdf4::ncvar_get(nc, "lat")
     time <- ncdf4::ncvar_get(nc, "time")
-    # 
+    #
     nCol <- base::length(lon[, 1])
     nRow <- base::length(lon[1, ])
     nTime <- base::length(time)
@@ -83,14 +94,14 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     end.date <- max(dates)
     start.date <- format(as.Date(start.date), "%Y-%m")
     end.date <- format(as.Date(end.date), "%Y-%m")
-    
+
     lon <- base::matrix(lon, ncol = 1)
     lat <- base::matrix(lat, ncol = 1)
-    
+
     lonLat <- base::data.frame(lon, lat)
     sp::coordinates(lonLat) <- ~lon + lat
     raster::projection(lonLat) <- regular
-    lonLat <- sp::spTransform(lonLat, sp::CRS(rotated))
+    suppressWarnings(lonLat <- sp::spTransform(lonLat, sp::CRS(rotated)))
     myExtent <- raster::extent(lonLat)
     # create an empty raster
     r <- raster::raster(ncols = nCol, nrows = nRow)  # empty raster
@@ -104,7 +115,7 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
         raster::extent(r) <- myExtent  # extent using the rotated projection
         r <- r * 1  # this is necessary for the base::do.call function below
     }
-    
+
     myStack <- base::do.call(raster::stack, myRaster)
     parallel::stopCluster(cl)
     myStack <- raster::setZ(myStack, dates, name = "time")
@@ -112,28 +123,29 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     mod <- myStack
     start.date.mod <- start.date
     end.date.mod <- end.date
-    
+
     #---------------------------------------------------------------------------
-    
-    shp.filename <- system.file("extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp", package = "amber")
+
+    # shp.filename <- system.file("extdata/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp", package = "amber")
+    shp.filename <- system.file("extdata/ne_110m_land/ne_110m_land.shp", package = "amber")
     land <- intFun.coast(my.xlim, my.ylim, my.projection, shp.filename)  # reproject coastline
-    
+
     # find common time period
     start.date <- max(start.date.mod, timePeriod[1])
     end.date <- min(end.date.mod, timePeriod[2])
-    
+
     # subset time period
-    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <= 
+    mod <- mod[[which(format(as.Date(raster::getZ(mod)), "%Y-%m") >= start.date & format(as.Date(raster::getZ(mod)), "%Y-%m") <=
         end.date)]]
     # get layer names
     mod.names <- names(mod)
-    
+
     # unit conversion if appropriate
     mod <- mod * unit.conv.mod
-    
+
     # Make a string that summarizes metadata
     meta.data.mod <- paste(variable.name, mod.id, "from", start.date, "to", end.date, sep = "_")
-    
+
     # all extreme outliers are set to NA in the grid they can be marked as a dot in the plot model data
     mod.mean <- raster::mean(mod, na.rm = TRUE)  # time mean
     mod.outlier_range <- intFun.grid.define.outlier(mod.mean, outlier.factor)  # define outlier range
@@ -144,19 +156,19 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     mod <- mod * mod.mask_outliers
     names(mod) <- mod.names
     mod.outlier.points <- intFun.grid.outliers.points(mod.mean, outlier.neg, outlier.pos)
-    
+
     #---------------------------------------------------------------------------
-    
+
     # (1) Time mean value
-    
+
     #---------------------------------------------------------------------------
-    
+
     mod.mean <- raster::mean(mod, na.rm = TRUE)  # time mean
     mmi.mean <- intFun.min.max.int.mod.ref(mod.mean, mod.mean)
-    raster::metadata(mod.mean) <- list(paste(variable.name, mod.id, "mod_mean", sep = "_"), paste("Mean", meta.data.mod, 
-        sep = "_"), mmi.mean, variable.unit)
+    raster::metadata(mod.mean) <- list(paste(variable.name, mod.id, "mod_mean", sep = "_"), paste("Mean", meta.data.mod, sep = "_"),
+        mmi.mean, variable.unit)
     data <- mod.mean
-    
+
     # get metadata
     meta <- raster::metadata(data)
     my.filename <- unlist(meta[1])
@@ -164,7 +176,7 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     my.title <- gsub("_", " ", id)
     min.max.int <- unlist(meta[3])
     legend.bar.text <- latex2exp::TeX(meta[[4]])
-    
+
     # for legend
     min <- min.max.int[1]
     max <- min.max.int[2]
@@ -172,14 +184,14 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     my.breaks <- round(seq(min, max, interval), 3)  # location of color breaks
     my.labels <- round(seq(min, max, interval), 3)  # location of labels
     my.col <- viridis::viridis(n = length(my.breaks) - 1, direction = -1)
-    
+
     my.axis.args <- list(at = my.labels, labels = my.labels, cex.axis = 1)
     my.legend.args <- list(text = legend.bar.text, side = 2, font = 1, line = 1, cex = 1)
-    
+
     # plot name
     my.filename <- gsub("_", "-", my.filename)
     my.filename <- gsub(".", "-", my.filename, fixed = TRUE)
-    
+
     # plot
     oldpar <- graphics::par(mfrow = c(1, 2))
     on.exit(graphics::par(oldpar))
@@ -189,84 +201,84 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     graphics::par(mfrow = c(1, 1), font.main = 1, mar = c(3, 3, 3, 4), lwd = 1, cex = 1)
     my.xlim <- c(raster::extent(land)[1], raster::extent(land)[2])
     my.ylim <- c(raster::extent(land)[3], raster::extent(land)[4])
-    raster::plot(data, col = NA, legend = FALSE, xlim = my.xlim, ylim = my.ylim, main = paste(long.name, my.title, sep = "\n"), 
+    raster::plot(data, col = NA, legend = FALSE, xlim = my.xlim, ylim = my.ylim, main = paste(long.name, my.title, sep = "\n"),
         axes = FALSE)
     raster::plot(land, col = "grey", border = NA, add = TRUE)
     raster::plot(data, col = my.col, breaks = my.breaks, legend = FALSE, add = TRUE)
     # mark grid cells with extreme outliers
     graphics::points(mod.outlier.points, pch = 16, cex = 1, col = "red")
-    plot(land, add = TRUE)
+    raster::plot(land, add = TRUE)
     # legend
-    plot(data, legend.only = TRUE, col = my.col, breaks = my.breaks, axis.args = my.axis.args, legend.args = my.legend.args, 
+    raster::plot(data, legend.only = TRUE, col = my.col, breaks = my.breaks, axis.args = my.axis.args, legend.args = my.legend.args,
         legend.width = 1.5, legend.shrink = 1, font = 1)
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }
-    
+
     #---------------------------------------------------------------------------
-    
+
     # Zonal mean
-    
+
     #---------------------------------------------------------------------------
-    
+
     data <- mod
     data.mean <- raster::mean(data, na.rm = TRUE)  # time mean
     values <- raster::getValues(data.mean)
     xy <- sp::coordinates(data.mean)
     data <- data.frame(xy, values)
-    
+
     sp::coordinates(data) <- ~x + y
     raster::projection(data) <- my.projection
-    data <- sp::spTransform(data, sp::CRS(regular))
+    suppressWarnings(data <- sp::spTransform(data, sp::CRS(regular)))
     lonLat <- sp::coordinates(data)
     data <- data.frame(lonLat, data$values)
     colnames(data) <- c("lon", "lat", "values")
     data <- stats::na.omit(data)  # omit rows with NA
-    
+
     zone <- round(data$lat, 0)
     data <- data.frame(zone, data)
     index <- list(data$zone)
-    
+
     # define function that computes quantiles
     fun.q25 <- function(x) {
         q25 <- stats::quantile(x, probs = c(0.25), na.rm = TRUE)
         return(q25)
     }
-    
+
     fun.q75 <- function(x) {
         q75 <- stats::quantile(x, probs = c(0.75), na.rm = TRUE)
         return(q75)
     }
-    
+
     zonal.mean.mean <- tapply(data$values, index, mean)
     zonal.mean.min <- tapply(data$values, index, fun.q25)
     zonal.mean.max <- tapply(data$values, index, fun.q75)
-    
+
     zone <- as.numeric(rownames(zonal.mean.mean))
-    
+
     # combine values rbind(zonal.mean.min, zonal.mean.max)
     zonal.mean <- data.frame(zone, zonal.mean.min, zonal.mean.max, zonal.mean.mean)
     zonal.mean <- stats::na.omit(zonal.mean)  # omit rows with NA
     colnames(zonal.mean) <- c("lat", "q25", "q75", "mean")
     zonal.mean.mod <- zonal.mean
-    
+
     # prepare plot file name
-    
+
     my.filename <- paste(variable.name, mod.id, "zonalMean-plotNc", sep = "-")
     # plot title
     my.title <- paste("Zonal mean", variable.name, mod.id, "from", start.date, "to", end.date)
     # colors
     my.col.mod <- "black"
     my.col.mod.range <- grDevices::adjustcolor(my.col.mod, alpha = 0.25)
-    
+
     # limits
     my.xlim <- c(min(zonal.mean.mod[1]), max(zonal.mean.mod[1]))
     # my.xllim <- c(-90,90)
     my.ylim <- c(min(zonal.mean.mod[2]), max(zonal.mean.mod[3]))
-    
+
     # legend bar text
     legend.bar.text <- latex2exp::TeX(variable.unit)
-    
+
     # model data polygons for uncertainty range
     zonal.mean <- zonal.mean.mod
     zone <- zonal.mean$lat
@@ -276,15 +288,15 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     poly.x.mod <- c(zone, rev(zone))
     poly.y.mod <- c(zonal.mean.min, rev(zonal.mean.max))
     zone.mod <- zone
-    
+
     # plot
-    
+
     if (outputDir != FALSE) {
         grDevices::pdf(paste(outputDir, "/", my.filename, ".pdf", sep = ""), width = plot.width, height = plot.height)
     }
     graphics::par(font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, tcl = 0.3)
     # plot
-    graphics::plot(zonal.mean$lat, zonal.mean$q75, main = paste(long.name, my.title, sep = "\n"), type = "l", xlab = "degrees latitude", 
+    graphics::plot(zonal.mean$lat, zonal.mean$q75, main = paste(long.name, my.title, sep = "\n"), type = "l", xlab = "degrees latitude",
         ylab = legend.bar.text, xlim = my.xlim, ylim = my.ylim, col = NA, las = 1)
     # mod
     graphics::polygon(poly.x.mod, poly.y.mod, col = my.col.mod.range, border = NA)
@@ -295,79 +307,79 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     graphics::axis(1, at = seq(-90, 90, 10), labels = FALSE, tcl = 0.3)
     graphics::axis(3, at = seq(-90, 90, 10), labels = FALSE, tcl = 0.3)
     graphics::axis(4, labels = FALSE, tcl = 0.3)
-    
+
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }
-    
+
     #---------------------------------------------------------------------------
-    
+
     # Seasonal cyle
-    
+
     #---------------------------------------------------------------------------
-    
+
     data <- mod
-    
+
     # date
     date <- as.Date(names(data), format = "X%Y.%m.%d")
     index <- format(as.Date(names(mod), format = "X%Y.%m.%d"), format = "%m")
     month <- as.numeric(index)
-    
+
     # time series
     time.series <- raster::cellStats(data, stat = "mean", na.rm = TRUE)
     time.series <- data.frame(date, month, time.series)
     colnames(time.series) <- c("date", "month", "data")
     time.series.mod <- time.series
-    
+
     # seasonal cycle
     index <- list(time.series$month)
     seasonMean <- tapply(time.series$data, index, mean, na.rm = TRUE)
     seasonMin <- tapply(time.series$data, index, min, na.rm = TRUE)
     seasonMax <- tapply(time.series$data, index, max, na.rm = TRUE)
-    
+
     months <- seq(1, 12, 1)
-    
+
     # make polygon inputs for plot
     poly.x <- c(months, rev(months))
     poly.y <- c(seasonMin, rev(seasonMax))
-    
-    
+
+
     seasonMean.mod <- seasonMean
     seasonMin.mod <- seasonMin
     seasonMax.mod <- seasonMax
-    
+
     poly.x.mod <- poly.x
     poly.y.mod <- poly.y
-    
+
     # prepare plot inputs
-    
+
     my.filename <- paste(variable.name, mod.id, "seasonalCycle", sep = "-")
-    
+
     # colors
     my.col.mod <- "black"
     my.col.mod.range <- grDevices::adjustcolor(my.col.mod, alpha = 0.25)
-    
+
     # legend bar text
     legend.bar.text <- latex2exp::TeX(variable.unit)
-    
+
     # plot
-    
+
     if (outputDir != FALSE) {
         grDevices::pdf(paste(outputDir, "/", my.filename, "-timeseries-plotNc.pdf", sep = ""), width = plot.width, height = plot.height)
     }
     graphics::par(mfrow = c(1, 1), font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, tcl = 0.3)
-    
+
     # (a) time series plot
-    
+
     # plot title
-    
+
     my.title <- paste("Global mean", variable.name, mod.id, "from", start.date, "to", end.date)
-    
+
     # time series
-    
+
     my.ylim <- c(min(time.series.mod$data, na.rm = TRUE), max(time.series.mod$data, na.rm = TRUE))
-    
-    graphics::plot(as.Date(time.series.mod$date), time.series.mod$data, col = "red", main = paste(long.name, my.title, sep = "\n"), 
+
+    graphics::plot(as.Date(time.series.mod$date), time.series.mod$data, col = "red", main = paste(long.name, my.title, sep = "\n"),
         type = "l", xlab = NA, ylab = legend.bar.text, ylim = my.ylim, las = 1)
     graphics::lines(as.Date(time.series.mod$date), time.series.mod$data, col = "black")
     # ticks
@@ -375,35 +387,35 @@ plotNcIrreg <- function(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit,
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }
-    
+
     # (b) climatological mean seasonal cycle
     if (outputDir != FALSE) {
         grDevices::pdf(paste(outputDir, "/", my.filename, "-clim-plotNc.pdf", sep = ""), width = plot.width, height = plot.height)
     }
     graphics::par(mfrow = c(1, 1), font.main = 1, mar = c(4, 5, 3, 1), lwd = 1, cex = 1, tcl = 0.3)
-    
+
     my.ylim <- c(min(poly.y.mod), max(poly.y.mod))
-    
-    graphics::plot(seq(1, 12, 1), seasonMean.mod, main = paste(long.name, my.title, sep = "\n"), type = "l", xaxt = "n", 
-        xlab = "", ylab = legend.bar.text, ylim = my.ylim, col = NA, las = 1)
-    
+
+    graphics::plot(seq(1, 12, 1), seasonMean.mod, main = paste(long.name, my.title, sep = "\n"), type = "l", xaxt = "n", xlab = "",
+        ylab = legend.bar.text, ylim = my.ylim, col = NA, las = 1)
+
     months <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
     axis(1, at = 1:12, labels = months)
-    
+
     # mod
     months <- seq(1, 12, 1)
     graphics::polygon(poly.x.mod, poly.y.mod, col = my.col.mod.range, border = NA)
     graphics::lines(months, seasonMean.mod, col = my.col.mod, lwd = 2)
-    
+
     # legend
     graphics::legend("topleft", "model mean and total range", col = c(my.col.mod), lty = 1, lwd = 2, bty = "n")
     # ticks
     graphics::axis(4, labels = FALSE, tcl = 0.3)
-    
+
     if (outputDir != FALSE) {
         grDevices::dev.off()
     }
-    
+
 }
 if (getRversion() >= "2.15.1") utils::globalVariables(c("i"))
 

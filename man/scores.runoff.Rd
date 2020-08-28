@@ -9,7 +9,8 @@ scores.runoff(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id,
   1, 1),
   shp.filename = system.file("extdata/ne_110m_land/ne_110m_land.shp",
   package = "amber"), my.xlim = c(-180, 180), my.ylim = c(-60, 85),
-  plot.width = 8, plot.height = 3.8, outputDir = FALSE)
+  plot.width = 8, plot.height = 3.8, outputDir = FALSE,
+  subcaption = "")
 }
 \arguments{
 \item{long.name}{A string that gives the full name of the variable, e.g. 'Gross primary productivity'}
@@ -46,6 +47,8 @@ plot, e.g. c(-90, 90)}
 \item{plot.height}{Number that gives the plot height, e.g. 4}
 
 \item{outputDir}{A string that gives the output directory, e.g. '/home/project/study'. The output will only be written if the user specifies an output directory}
+
+\item{subcaption}{A string that defines the subcaption of the figure, e.g. '(a)'.}
 }
 \value{
 (1) Figures in PDF format that show global maps of
@@ -89,9 +92,22 @@ the standard deviation:
 
 \donttest{
 library(amber)
-library(ncdf4)
-library(raster)
+library(classInt)
+library(doParallel)
+library(foreach)
+library(Hmisc)
 library(latex2exp)
+library(ncdf4)
+library(parallel)
+library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Streamflow'
 nc.mod <- system.file('extdata/modelRegular', 'mrro_monthly.nc', package = 'amber')
@@ -106,5 +122,5 @@ score.weights <- c(1,2,1,1,1) # define score weights
 
 scores.runoff(long.name, nc.mod, nc.ref, nc.basins, mod.id, ref.id, unit.conv.mod,
 unit.conv.ref, variable.unit, score.weights)
-}
+} #donttest
 }

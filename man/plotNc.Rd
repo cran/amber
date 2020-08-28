@@ -19,7 +19,7 @@ plotNc(long.name, nc.mod, mod.id, unit.conv.mod, variable.unit, timePeriod,
 
 \item{variable.unit}{A string that gives the final units using LaTeX notation, e.g. 'gC m$^{-2}$ day$^{-1}$'}
 
-\item{timePeriod}{A string that gies the time period over which to average the data, e.g. c('1980-01', '2017-12')}
+\item{timePeriod}{A string that gives the time period over which to average the data, e.g. c('1980-01', '2017-12')}
 
 \item{outlier.factor}{A number that is used to define outliers, e.g. 10.
 Plotting raster objects that contain extreme outliers lead to figures where
@@ -47,10 +47,23 @@ seasonal cycle of variable stored in NetCDF model output. The function expects
 model data to be on a regular grid.
 }
 \examples{
-
 library(amber)
+library(classInt)
+library(doParallel)
+library(foreach)
+library(Hmisc)
+library(latex2exp)
 library(ncdf4)
+library(parallel)
 library(raster)
+library(rgdal)
+library(rgeos)
+library(scico)
+library(sp)
+library(stats)
+library(utils)
+library(viridis)
+library(xtable)
 
 long.name <- 'Gross primary productivity'
 nc.mod <- system.file('extdata/modelRegular', 'gpp_monthly.nc', package = 'amber')
